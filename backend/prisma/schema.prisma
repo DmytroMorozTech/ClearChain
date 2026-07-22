@@ -1,0 +1,140 @@
+// ClearChain data model — see requirements.md §10.
+//
+// Deliberately absent: Supplier.riskLevel and Certificate.status. Both are functions
+// of the current date, so a stored copy is correct on the day it is written and wrong
+// every day after, with no write to trigger recomputation. Both are derived on read
+// from the pure functions in src/domain (§10.1).
+//
+// `tier` IS stored, because it is needed for indexed filtering, but it is
+// system-maintained and never client-supplied.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 no longer accepts `url` here — the CLI reads it from prisma.config.ts, and
+// the runtime gets a driver adapter passed to the PrismaClient constructor instead.
+datasource db {
+  provider = "postgresql"
+}
+
+enum SupplierCategory {
+  RAW_MATERIAL
+  MANUFACTURING
+  LOGISTICS
+}
+
+enum CertificateType {
+  CSRD
+  LKSG
+  EUDR
+  CBAM
+  ISO_14001
+  SA8000
+  OEKO_TEX
+}
+
+enum RiskBand {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum SourceSystem {
+  MANUAL
+  ERP
+}
+
+enum SyncStatus {
+  RUNNING
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+model Supplier {
+  id           String           @id @default(uuid()) @db.Uuid
+  /// ERP natural key. Null for manually-created suppliers, which sync never touches.
+  externalId   String?          @unique
+  name         String
+  /// ISO 3166-1 alpha-2. FK to CountryRisk makes an unscored country impossible.
+  countryCode  String           @db.Char(2)
+  /// Derived invariant: depth(parentChain) + 1. CHECK constrains it to 1..3.
+  tier         Int
+  category     SupplierCategory
+  contactEmail String?
+  isActive     Boolean          @default(true)
+  sourceSystem SourceSystem     @default(MANUAL)
+  lastSyncedAt DateTime?
+
+  parentSupplierId String?    @db.Uuid
+  parent           Supplier?  @relation("SupplyChain", fields: [parentSupplierId], references: [id], onDelete: Restrict)
+  children         Supplier[] @relation("SupplyChain")
+
+  country      CountryRisk   @relation(fields: [countryCode], references: [code])
+  certificates Certificate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentSupplierId])
+  @@index([tier])
+  @@index([countryCode])
+  @@index([name])
+}
+
+model Certificate {
+  id                String          @id @default(uuid()) @db.Uuid
+  supplierId        String          @db.Uuid
+  supplier          Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  type              CertificateType
+  issuer            String?
+  certificateNumber String?
+  /// Calendar dates, not instants — @db.Date avoids the off-by-one-day bug that
+  /// timestamp serialization causes for any viewer west of UTC (§11).
+  issueDate         DateTime        @db.Date
+  expiryDate        DateTime        @db.Date
+  /// Driver-agnostic, server-generated. NOT a URL: a URL written by the local driver
+  /// is meaningless under the S3 driver, which would defeat the abstraction (§13).
+  storageKey        String          @unique
+  /// Original upload name. Stored as data only, never used to build a path.
+  fileName          String
+  mimeType          String
+  fileSize          Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([supplierId, type])
+  @@index([expiryDate])
+}
+
+model CountryRisk {
+  code      String     @id @db.Char(2)
+  name      String
+  band      RiskBand
+  /// 5 (LOW) | 20 (MEDIUM) | 40 (HIGH) — see §7 Factor 1.
+  baseScore Int
+  suppliers Supplier[]
+}
+
+model ErpSyncLog {
+  id     String     @id @default(uuid()) @db.Uuid
+  source String
+  /// sha256 of the ingested file — lets the UI evidence idempotency across runs.
+  sourceFileHash String?
+  status SyncStatus
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  recordsRead      Int @default(0)
+  recordsCreated   Int @default(0)
+  recordsUpdated   Int @default(0)
+  recordsUnchanged Int @default(0)
+  recordsRejected  Int @default(0)
+
+  errors Json?
+
+  @@index([startedAt])
+}

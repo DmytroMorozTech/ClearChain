@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: clearchain-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clearchain
+      POSTGRES_PASSWORD: clearchain
+      POSTGRES_DB: clearchain
+    ports:
+      # Published on 5433, not 5432, so it cannot collide with a PostgreSQL already
+      # installed on the host — a very common first-run failure for anyone cloning
+      # this repository.
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, on first initialisation of an empty volume. Creates the separate
+      # database used by the integration tests so it never has to be made by hand.
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # `docker compose up -d` returns as soon as the container *starts*, not when
+      # PostgreSQL is ready to accept connections. Without this healthcheck, running
+      # migrations immediately afterwards races the database on a cold machine.
+      test: ['CMD-SHELL', 'pg_isready -U clearchain -d clearchain']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+volumes:
+  pgdata:
