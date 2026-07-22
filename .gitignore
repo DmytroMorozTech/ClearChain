@@ -7,6 +7,9 @@ coverage/
 # Working business requirements document — kept locally, never committed.
 requirements.md
 
+# Local editor/tooling state — machine-specific, not part of the project.
+.claude/
+
 # Env files — .env.example is committed, real .env files never are
 .env
 .env.local
