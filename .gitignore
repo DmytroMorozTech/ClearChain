@@ -1,0 +1,24 @@
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# Working business requirements document — kept locally, never committed.
+requirements.md
+
+# Env files — .env.example is committed, real .env files never are
+.env
+.env.local
+.env.*.local
+
+# Local file-storage driver target (§13). Directory is kept, contents are not.
+uploads/*
+!uploads/.gitkeep
+
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+*.tsbuildinfo

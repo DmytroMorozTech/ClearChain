@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+uploads
+archive
+backend/prisma/migrations
+package-lock.json
+
+# Specification and docs are hand-formatted (aligned tables, deliberate wrapping).
+# Prettier's markdown printer would rewrap them and destroy the alignment.
+*.md
