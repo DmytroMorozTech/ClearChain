@@ -1,16 +1,18 @@
 import type { Express } from 'express';
-import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.ts';
+import { type ApiAgent, signIn } from './helpers/auth.ts';
 import { COMPANY_NAME, COMPANY_NODE_ID } from '../src/config/company.ts';
 import { DASHBOARD_EXPIRY_WINDOW_DAYS } from '../src/config/thresholds.ts';
 import { disconnect, resetDatabase, resetUploads, seedCountries } from './helpers/db.ts';
 
 let app: Express;
+let api: ApiAgent;
 
 beforeAll(async () => {
   app = createApp();
+  api = await signIn(app);
   await seedCountries();
 });
 
@@ -32,14 +34,12 @@ async function makeSupplier(
   category: string,
   parentSupplierId?: string,
 ): Promise<string> {
-  const response = await request(app)
-    .post('/api/suppliers')
-    .send({
-      name,
-      countryCode,
-      category,
-      ...(parentSupplierId ? { parentSupplierId } : {}),
-    });
+  const response = await api.post('/api/suppliers').send({
+    name,
+    countryCode,
+    category,
+    ...(parentSupplierId ? { parentSupplierId } : {}),
+  });
   return response.body.id as string;
 }
 
@@ -49,7 +49,7 @@ async function addCertificate(
   issueDate: string,
   expiryDate: string,
 ): Promise<void> {
-  await request(app)
+  await api
     .post(`/api/suppliers/${supplierId}/certificates`)
     .field('type', type)
     .field('issueDate', issueDate)
@@ -88,7 +88,7 @@ async function buildChain() {
 
 describe('GET /api/dashboard', () => {
   it('is empty but well-formed with no data', async () => {
-    const response = await request(app).get('/api/dashboard');
+    const response = await api.get('/api/dashboard');
 
     expect(response.status).toBe(200);
     expect(response.body.company.name).toBe(COMPANY_NAME);
@@ -100,7 +100,7 @@ describe('GET /api/dashboard', () => {
   it('reports figures that reconcile with the rows behind them', async () => {
     await buildChain();
 
-    const response = await request(app).get('/api/dashboard');
+    const response = await api.get('/api/dashboard');
     const { suppliers, certificates } = response.body;
 
     expect(suppliers.total).toBe(4);
@@ -140,18 +140,18 @@ describe('GET /api/dashboard', () => {
     const supplier = await makeSupplier('Window Test', 'DE', 'LOGISTICS');
     await addCertificate(supplier, 'ISO_14001', '2026-01-01', isoDaysFromNow(45));
 
-    const dashboard = await request(app).get('/api/dashboard');
+    const dashboard = await api.get('/api/dashboard');
     expect(dashboard.body.certificates.expiringSoon).toBe(0);
 
-    const certificates = await request(app).get('/api/certificates?status=EXPIRING_SOON');
+    const certificates = await api.get('/api/certificates?status=EXPIRING_SOON');
     expect(certificates.body.total).toBe(1);
   });
 
   it('does not count the company itself as a supplier', async () => {
     await buildChain();
 
-    const dashboard = await request(app).get('/api/dashboard');
-    const suppliers = await request(app).get('/api/suppliers?pageSize=100');
+    const dashboard = await api.get('/api/dashboard');
+    const suppliers = await api.get('/api/suppliers?pageSize=100');
 
     expect(dashboard.body.suppliers.total).toBe(suppliers.body.total);
   });
@@ -159,7 +159,7 @@ describe('GET /api/dashboard', () => {
 
 describe('GET /api/chain', () => {
   it('returns an empty graph with only the company when there are no suppliers', async () => {
-    const response = await request(app).get('/api/chain');
+    const response = await api.get('/api/chain');
 
     expect(response.status).toBe(200);
     expect(response.body.nodes).toHaveLength(1);
@@ -171,8 +171,8 @@ describe('GET /api/chain', () => {
   it('emits one node per supplier plus the company root', async () => {
     await buildChain();
 
-    const response = await request(app).get('/api/chain');
-    const suppliers = await request(app).get('/api/suppliers?pageSize=100');
+    const response = await api.get('/api/chain');
+    const suppliers = await api.get('/api/suppliers?pageSize=100');
 
     expect(response.body.nodes).toHaveLength(suppliers.body.total + 1);
     expect(response.body.nodes.filter((n: { type: string }) => n.type === 'company')).toHaveLength(
@@ -183,7 +183,7 @@ describe('GET /api/chain', () => {
   it('gives every supplier exactly one incoming edge, so nothing is orphaned', async () => {
     const { a, b, c, d } = await buildChain();
 
-    const response = await request(app).get('/api/chain');
+    const response = await api.get('/api/chain');
     const edges: Array<{ source: string; target: string }> = response.body.edges;
 
     expect(edges).toHaveLength(4);
@@ -198,7 +198,7 @@ describe('GET /api/chain', () => {
   it('every edge endpoint resolves to a node', async () => {
     await buildChain();
 
-    const response = await request(app).get('/api/chain');
+    const response = await api.get('/api/chain');
     const ids = new Set(response.body.nodes.map((node: { id: string }) => node.id));
 
     for (const edge of response.body.edges as Array<{ source: string; target: string }>) {
@@ -210,7 +210,7 @@ describe('GET /api/chain', () => {
   it('carries the risk band each node should be coloured by', async () => {
     const { c } = await buildChain();
 
-    const response = await request(app).get('/api/chain');
+    const response = await api.get('/api/chain');
     const gamma = response.body.nodes.find((node: { id: string }) => node.id === c);
 
     // Bangladesh (40) + no certificates (40) + tier 3 (10) = 90.
@@ -222,7 +222,7 @@ describe('GET /api/chain', () => {
   it('leaves the company node without risk, because it is not a supplier', async () => {
     await buildChain();
 
-    const response = await request(app).get('/api/chain');
+    const response = await api.get('/api/chain');
     const company = response.body.nodes.find((node: { type: string }) => node.type === 'company');
 
     expect(company.riskLevel).toBeNull();
@@ -232,7 +232,7 @@ describe('GET /api/chain', () => {
 
 describe('reference data', () => {
   it('exposes the country risk table that feeds the score', async () => {
-    const response = await request(app).get('/api/reference/countries');
+    const response = await api.get('/api/reference/countries');
 
     expect(response.status).toBe(200);
     const germany = response.body.data.find((c: { code: string }) => c.code === 'DE');
@@ -240,7 +240,7 @@ describe('reference data', () => {
   });
 
   it('states which categories require each certificate type', async () => {
-    const response = await request(app).get('/api/reference/certificate-types');
+    const response = await api.get('/api/reference/certificate-types');
     const byType = new Map(
       response.body.data.map((entry: { type: string; requiredFor: string[] }) => [
         entry.type,

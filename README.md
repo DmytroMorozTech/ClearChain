@@ -27,7 +27,23 @@ npm run db:setup         # migrate + seed ~34 suppliers with certificates
 npm run dev              # API on :3001, UI on :5173
 ```
 
-Open <http://localhost:5173>.
+Open <http://localhost:5173> and sign in:
+
+```
+testUser / ClearChain-Demo-7fQ2
+```
+
+The credentials are documented here and travel with the link, not printed on the sign-in
+screen — putting them on the page would have been hanging the key on the door handle.
+
+To change it:
+
+```bash
+npm run auth:hash -w @clearchain/backend -- "your password"
+```
+
+which prints a fresh `AUTH_PASSWORD_HASH` and `AUTH_SECRET` for `backend/.env`. The
+password itself is never stored anywhere.
 
 Postgres is published on **5433**, not 5432, so it cannot collide with a PostgreSQL
 already installed on the machine. The compose service has a `pg_isready` healthcheck,
@@ -265,19 +281,52 @@ abstraction is a real seam rather than a comment, but no AWS resources exist for
 demo. The intended shape is the backend image on ECS Fargate or Elastic Beanstalk, the
 frontend build on S3 behind CloudFront, and RDS PostgreSQL.
 
-The reason for stopping short is not only cost. The application has no authentication by
-design, so a publicly reachable deployment would offer anonymous file upload to the
-internet. `DEMO_READONLY=true` answers that — every mutating route returns 403 — and the
-guard is built now so that a future deployment is one variable away from safe rather than
-a retrofit.
+A deployment must set its own `AUTH_SECRET`. The value in `.env.example` is published in
+this repository, and anyone holding it can mint a valid session cookie.
+
+`DEMO_READONLY=true` remains available as a second line — every mutating route returns
+403 — for a deployment that would rather show the data than accept uploads at all.
 
 ---
 
+## Authentication
+
+One shared account, because the alternative was an internet-reachable file-upload
+endpoint with no owner.
+
+The password is stored as a scrypt hash and compared in constant time — a plain `===`
+returns as soon as two bytes differ, and how long it took to say no is itself
+information. The session is a signed, stateless cookie: `httpOnly` so an XSS cannot lift
+it, `sameSite=lax` so it is not sent on the cross-site POSTs that CSRF depends on, and
+seven days long so a reviewer is not asked to sign in twice.
+
+The token is deliberately **not** a JWT library. With one account, nothing to revoke and
+no third party to interoperate with, the parts of JWT that carry risk are all cost:
+algorithm negotiation is where those libraries have historically been broken, and this
+format has no algorithm field to confuse. What remains is a payload and an HMAC over it.
+Rotating `AUTH_SECRET` invalidates every token at once, which is the only revocation a
+single account needs.
+
+Sign-in has its own, far tighter rate limit than the rest of the API — without it the
+screen is a password oracle that can be worked through at network speed. A failed
+attempt says the same thing whether the username or the password was wrong, so the form
+cannot be used to discover valid usernames.
+
+Everything below `app.use('/api', requireAuth)` is guarded, so a route added later is
+protected by default rather than by somebody remembering. `/api/health` stays open,
+because a probe cannot hold a cookie; so does `/api/auth/login`, or signing in would
+require being signed in.
+
+Keeping the demo out of search results is a *separate* problem, and the gate does not
+solve it: a crawler never submits the form, but it still records the URL. `robots.txt`
+and a `noindex` meta tag handle that. Two tools, two problems, neither pretending to do
+the other's job.
+
 ## Scoped out
 
-Authentication, multi-tenancy, a real ERP connector, AI document extraction, risk-score
-history and dark mode are all out of scope for this MVP — considered and set aside rather
-than overlooked.
+Multi-tenancy, a real ERP connector, AI document extraction, risk-score history and dark
+mode are all out of scope for this MVP — considered and set aside rather than
+overlooked.
 
 The country risk bands in `backend/data/country-risk.json` are invented to produce a
 varied dataset. They are not an assessment of any country; a real system would derive

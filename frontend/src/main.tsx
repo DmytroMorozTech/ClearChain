@@ -1,6 +1,6 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
@@ -10,6 +10,19 @@ import { ApiError } from './api/client.ts';
 import { theme } from './theme.ts';
 
 const queryClient = new QueryClient({
+  /**
+   * A session can lapse between requests, so any query may come back 401 — including
+   * one fired long after sign-in. Re-checking the session centrally means the app falls
+   * back to the sign-in screen wherever that happens, instead of each screen having to
+   * notice for itself.
+   */
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 401) {
+        void queryClient.invalidateQueries({ queryKey: ['session'] });
+      }
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 30_000,

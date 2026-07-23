@@ -1,0 +1,7 @@
+# A portfolio demo, not a page anyone should reach through a search result.
+#
+# The sign-in gate and this file answer two different problems. The gate stops anonymous
+# writes; it does nothing about indexing, because a crawler that never submits the form
+# still records the URL. This is what keeps the demo out of search results.
+User-agent: *
+Disallow: /

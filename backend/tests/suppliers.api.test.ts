@@ -1,14 +1,16 @@
 import type { Express } from 'express';
-import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.ts';
+import { type ApiAgent, signIn } from './helpers/auth.ts';
 import { disconnect, resetDatabase, seedCountries } from './helpers/db.ts';
 
 let app: Express;
+let api: ApiAgent;
 
 beforeAll(async () => {
   app = createApp();
+  api = await signIn(app);
   await seedCountries();
 });
 
@@ -29,7 +31,7 @@ interface SupplierBody {
 }
 
 async function createSupplier(body: SupplierBody) {
-  return request(app).post('/api/suppliers').send(body);
+  return api.post('/api/suppliers').send(body);
 }
 
 async function createChain(): Promise<{ a: string; b: string; c: string; d: string }> {
@@ -58,7 +60,7 @@ async function createChain(): Promise<{ a: string; b: string; c: string; d: stri
 
 describe('GET /api/health', () => {
   it('reports the database as reachable', async () => {
-    const response = await request(app).get('/api/health');
+    const response = await api.get('/api/health');
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ status: 'ok', db: 'up' });
@@ -81,8 +83,8 @@ describe('POST /api/suppliers — tier is derived, never supplied', () => {
   it('derives tier from the parent chain', async () => {
     const { b, c } = await createChain();
 
-    const bDetail = await request(app).get(`/api/suppliers/${b}`);
-    const cDetail = await request(app).get(`/api/suppliers/${c}`);
+    const bDetail = await api.get(`/api/suppliers/${b}`);
+    const cDetail = await api.get(`/api/suppliers/${c}`);
 
     expect(bDetail.body.tier).toBe(2);
     expect(cDetail.body.tier).toBe(3);
@@ -130,7 +132,7 @@ describe('POST /api/suppliers — tier is derived, never supplied', () => {
   });
 
   it('validates the request body', async () => {
-    const response = await request(app)
+    const response = await api
       .post('/api/suppliers')
       .send({ name: '', countryCode: 'DEU', category: 'NOPE' });
 
@@ -146,7 +148,7 @@ describe('PATCH /api/suppliers/:id — hierarchy invariants', () => {
   it('rejects a move that would create a cycle with 409', async () => {
     const { a, c } = await createChain();
 
-    const response = await request(app).patch(`/api/suppliers/${a}`).send({ parentSupplierId: c });
+    const response = await api.patch(`/api/suppliers/${a}`).send({ parentSupplierId: c });
 
     expect(response.status).toBe(409);
     expect(response.body.error.code).toBe('HIERARCHY_CYCLE');
@@ -155,7 +157,7 @@ describe('PATCH /api/suppliers/:id — hierarchy invariants', () => {
   it('rejects self-parenting', async () => {
     const { b } = await createChain();
 
-    const response = await request(app).patch(`/api/suppliers/${b}`).send({ parentSupplierId: b });
+    const response = await api.patch(`/api/suppliers/${b}`).send({ parentSupplierId: b });
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe('VALIDATION_ERROR');
@@ -166,7 +168,7 @@ describe('PATCH /api/suppliers/:id — hierarchy invariants', () => {
   it('rejects a move that would push a grandchild past tier 3', async () => {
     const { a, d } = await createChain();
 
-    const response = await request(app).patch(`/api/suppliers/${a}`).send({ parentSupplierId: d });
+    const response = await api.patch(`/api/suppliers/${a}`).send({ parentSupplierId: d });
 
     expect(response.status).toBe(409);
     expect(response.body.error.code).toBe('MAX_DEPTH_EXCEEDED');
@@ -175,12 +177,12 @@ describe('PATCH /api/suppliers/:id — hierarchy invariants', () => {
   it('renumbers the whole subtree when a legal move changes depth', async () => {
     const { b, c, d } = await createChain();
 
-    const response = await request(app).patch(`/api/suppliers/${b}`).send({ parentSupplierId: d });
+    const response = await api.patch(`/api/suppliers/${b}`).send({ parentSupplierId: d });
     expect(response.status).toBe(200);
     expect(response.body.tier).toBe(2);
 
     // C was never mentioned in the request but must have been renumbered with it.
-    const cDetail = await request(app).get(`/api/suppliers/${c}`);
+    const cDetail = await api.get(`/api/suppliers/${c}`);
     expect(cDetail.body.tier).toBe(3);
     expect(cDetail.body.parentSupplierId).toBe(b);
   });
@@ -188,26 +190,24 @@ describe('PATCH /api/suppliers/:id — hierarchy invariants', () => {
   it('promotes a subtree to the root and renumbers downward', async () => {
     const { b, c } = await createChain();
 
-    const response = await request(app)
-      .patch(`/api/suppliers/${b}`)
-      .send({ parentSupplierId: null });
+    const response = await api.patch(`/api/suppliers/${b}`).send({ parentSupplierId: null });
 
     expect(response.status).toBe(200);
     expect(response.body.tier).toBe(1);
     expect(response.body.parentSupplierId).toBeNull();
 
-    const cDetail = await request(app).get(`/api/suppliers/${c}`);
+    const cDetail = await api.get(`/api/suppliers/${c}`);
     expect(cDetail.body.tier).toBe(2);
   });
 
   it('leaves the hierarchy untouched when a rejected move fails', async () => {
     const { a, c, d } = await createChain();
 
-    await request(app).patch(`/api/suppliers/${a}`).send({ parentSupplierId: d });
+    await api.patch(`/api/suppliers/${a}`).send({ parentSupplierId: d });
 
     // The transaction rolled back: A is still a root and C is still at tier 3.
-    const aDetail = await request(app).get(`/api/suppliers/${a}`);
-    const cDetail = await request(app).get(`/api/suppliers/${c}`);
+    const aDetail = await api.get(`/api/suppliers/${a}`);
+    const cDetail = await api.get(`/api/suppliers/${c}`);
 
     expect(aDetail.body.parentSupplierId).toBeNull();
     expect(aDetail.body.tier).toBe(1);
@@ -217,7 +217,7 @@ describe('PATCH /api/suppliers/:id — hierarchy invariants', () => {
   it('updates scalar fields without touching the hierarchy', async () => {
     const { b } = await createChain();
 
-    const response = await request(app)
+    const response = await api
       .patch(`/api/suppliers/${b}`)
       .send({ name: 'B renamed', contactEmail: 'compliance@example.com' });
 
@@ -232,7 +232,7 @@ describe('DELETE /api/suppliers/:id', () => {
   it('refuses to delete a supplier that still has children', async () => {
     const { b } = await createChain();
 
-    const response = await request(app).delete(`/api/suppliers/${b}`);
+    const response = await api.delete(`/api/suppliers/${b}`);
 
     expect(response.status).toBe(409);
     expect(response.body.error.code).toBe('SUPPLIER_HAS_CHILDREN');
@@ -242,14 +242,12 @@ describe('DELETE /api/suppliers/:id', () => {
   it('deletes a leaf', async () => {
     const { c } = await createChain();
 
-    expect((await request(app).delete(`/api/suppliers/${c}`)).status).toBe(204);
-    expect((await request(app).get(`/api/suppliers/${c}`)).status).toBe(404);
+    expect((await api.delete(`/api/suppliers/${c}`)).status).toBe(204);
+    expect((await api.get(`/api/suppliers/${c}`)).status).toBe(404);
   });
 
   it('returns 404 for an unknown id', async () => {
-    const response = await request(app).delete(
-      '/api/suppliers/00000000-0000-4000-8000-000000000000',
-    );
+    const response = await api.delete('/api/suppliers/00000000-0000-4000-8000-000000000000');
 
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe('NOT_FOUND');
@@ -260,7 +258,7 @@ describe('GET /api/suppliers', () => {
   it('paginates and reports the unpaginated total', async () => {
     await createChain();
 
-    const response = await request(app).get('/api/suppliers?page=1&pageSize=2');
+    const response = await api.get('/api/suppliers?page=1&pageSize=2');
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(2);
@@ -271,7 +269,7 @@ describe('GET /api/suppliers', () => {
   it('filters by tier', async () => {
     await createChain();
 
-    const response = await request(app).get('/api/suppliers?tier=1');
+    const response = await api.get('/api/suppliers?tier=1');
 
     expect(response.body.total).toBe(2); // A and D
     expect(response.body.data.every((s: { tier: number }) => s.tier === 1)).toBe(true);
@@ -280,7 +278,7 @@ describe('GET /api/suppliers', () => {
   it('filters by derived risk level', async () => {
     await createChain();
 
-    const response = await request(app).get('/api/suppliers?riskLevel=RED');
+    const response = await api.get('/api/suppliers?riskLevel=RED');
 
     expect(response.body.data.every((s: { riskLevel: string }) => s.riskLevel === 'RED')).toBe(
       true,
@@ -290,14 +288,14 @@ describe('GET /api/suppliers', () => {
   it('searches by name', async () => {
     await createChain();
 
-    const response = await request(app).get('/api/suppliers?search=b');
+    const response = await api.get('/api/suppliers?search=b');
 
     expect(response.body.total).toBe(1);
     expect(response.body.data[0].name).toBe('B');
   });
 
   it('rejects an unsupported sort key', async () => {
-    const response = await request(app).get('/api/suppliers?sort=secret:asc');
+    const response = await api.get('/api/suppliers?sort=secret:asc');
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe('VALIDATION_ERROR');
@@ -308,7 +306,7 @@ describe('GET /api/suppliers/:id/risk — explainability', () => {
   it('returns the factor breakdown, not just a colour', async () => {
     const { c } = await createChain();
 
-    const response = await request(app).get(`/api/suppliers/${c}/risk`);
+    const response = await api.get(`/api/suppliers/${c}/risk`);
 
     expect(response.status).toBe(200);
     expect(response.body.factors.map((f: { code: string }) => f.code)).toEqual([
@@ -326,7 +324,7 @@ describe('GET /api/suppliers/:id/risk — explainability', () => {
   it('rolls damped upstream risk into the parent', async () => {
     const { a } = await createChain();
 
-    const response = await request(app).get(`/api/suppliers/${a}/risk`);
+    const response = await api.get(`/api/suppliers/${a}/risk`);
 
     const upstream = response.body.factors.find((f: { code: string }) => f.code === 'UPSTREAM');
     expect(upstream.points).toBeGreaterThan(0);
@@ -335,7 +333,7 @@ describe('GET /api/suppliers/:id/risk — explainability', () => {
 
 describe('error envelope', () => {
   it('uses one shape for every failure', async () => {
-    const response = await request(app).get('/api/suppliers/not-a-uuid');
+    const response = await api.get('/api/suppliers/not-a-uuid');
 
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('error.code');
@@ -343,7 +341,7 @@ describe('error envelope', () => {
   });
 
   it('returns 404 for an unmatched route', async () => {
-    const response = await request(app).get('/api/nope');
+    const response = await api.get('/api/nope');
 
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe('NOT_FOUND');

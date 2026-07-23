@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" content="#4F46E5" />
+    <!-- Belt and braces with robots.txt: the file asks a crawler not to fetch, this
+         asks any that fetched anyway not to index. Neither is a security control --
+         that is what the sign-in gate is for. -->
+    <meta name="robots" content="noindex, nofollow" />
     <meta
       name="description"
       content="ClearChain — supply chain compliance and transparency dashboard."

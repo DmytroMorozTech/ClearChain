@@ -2,10 +2,10 @@ import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { Express } from 'express';
-import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.ts';
+import { type ApiAgent, signIn } from './helpers/auth.ts';
 import { prisma } from '../src/db/prisma.ts';
 import {
   disconnect,
@@ -16,12 +16,14 @@ import {
 } from './helpers/db.ts';
 
 let app: Express;
+let api: ApiAgent;
 
 const PDF = Buffer.from('%PDF-1.7\nfake certificate body\n%%EOF');
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01, 0x02, 0x03]);
 
 beforeAll(async () => {
   app = createApp();
+  api = await signIn(app);
   await seedCountries();
 });
 
@@ -36,14 +38,14 @@ afterAll(async () => {
 });
 
 async function makeSupplier(): Promise<string> {
-  const response = await request(app)
+  const response = await api
     .post('/api/suppliers')
     .send({ name: 'Acme Textiles', countryCode: 'DE', category: 'MANUFACTURING' });
   return response.body.id as string;
 }
 
 function upload(supplierId: string) {
-  return request(app)
+  return api
     .post(`/api/suppliers/${supplierId}/certificates`)
     .field('type', 'ISO_14001')
     .field('issueDate', '2026-01-15')
@@ -178,7 +180,7 @@ describe('POST /api/suppliers/:id/certificates', () => {
   it('rejects an expiry that precedes the issue date', async () => {
     const supplierId = await makeSupplier();
 
-    const response = await request(app)
+    const response = await api
       .post(`/api/suppliers/${supplierId}/certificates`)
       .field('type', 'ISO_14001')
       .field('issueDate', '2026-05-01')
@@ -195,7 +197,7 @@ describe('POST /api/suppliers/:id/certificates', () => {
   it('rejects an issue date in the future', async () => {
     const supplierId = await makeSupplier();
 
-    const response = await request(app)
+    const response = await api
       .post(`/api/suppliers/${supplierId}/certificates`)
       .field('type', 'ISO_14001')
       .field('issueDate', '2999-01-01')
@@ -208,7 +210,7 @@ describe('POST /api/suppliers/:id/certificates', () => {
   it('accepts an already-expired certificate as a historical record', async () => {
     const supplierId = await makeSupplier();
 
-    const response = await request(app)
+    const response = await api
       .post(`/api/suppliers/${supplierId}/certificates`)
       .field('type', 'ISO_14001')
       .field('issueDate', '2020-01-01')
@@ -238,7 +240,7 @@ describe('GET /api/certificates/:id/file', () => {
       contentType: 'application/pdf',
     });
 
-    const response = await request(app).get(`/api/certificates/${created.body.id}/file`);
+    const response = await api.get(`/api/certificates/${created.body.id}/file`);
 
     expect(response.status).toBe(200);
     // Content-Type comes from the allowlist the bytes were validated against, and
@@ -260,7 +262,7 @@ describe('GET /api/certificates/:id/file', () => {
       contentType: 'application/pdf',
     });
 
-    const response = await request(app).get(`/api/certificates/${created.body.id}/file`);
+    const response = await api.get(`/api/certificates/${created.body.id}/file`);
 
     expect(response.headers['content-disposition']).toBe(
       'attachment; filename="annual audit 2026.pdf"',
@@ -268,9 +270,7 @@ describe('GET /api/certificates/:id/file', () => {
   });
 
   it('404s for an unknown certificate', async () => {
-    const response = await request(app).get(
-      '/api/certificates/00000000-0000-4000-8000-000000000000/file',
-    );
+    const response = await api.get('/api/certificates/00000000-0000-4000-8000-000000000000/file');
 
     expect(response.status).toBe(404);
   });
@@ -286,7 +286,7 @@ describe('DELETE /api/certificates/:id', () => {
 
     expect(await listStoredFiles()).toHaveLength(1);
 
-    const response = await request(app).delete(`/api/certificates/${created.body.id}`);
+    const response = await api.delete(`/api/certificates/${created.body.id}`);
 
     expect(response.status).toBe(204);
     expect(await listStoredFiles()).toHaveLength(0);
@@ -308,7 +308,7 @@ describe('deleting a supplier', () => {
 
     expect(await listStoredFiles()).toHaveLength(2);
 
-    const response = await request(app).delete(`/api/suppliers/${supplierId}`);
+    const response = await api.delete(`/api/suppliers/${supplierId}`);
 
     expect(response.status).toBe(204);
     expect(await prisma.certificate.count()).toBe(0);
@@ -320,11 +320,11 @@ describe('certificates affect compliance and risk', () => {
   it('improves the supplier risk score once required certificates are present', async () => {
     const supplierId = await makeSupplier();
 
-    const before = await request(app).get(`/api/suppliers/${supplierId}`);
+    const before = await api.get(`/api/suppliers/${supplierId}`);
     expect(before.body.isCompliant).toBe(false);
 
     for (const type of ['SA8000', 'OEKO_TEX', 'ISO_14001']) {
-      await request(app)
+      await api
         .post(`/api/suppliers/${supplierId}/certificates`)
         .field('type', type)
         .field('issueDate', '2026-01-01')
@@ -332,7 +332,7 @@ describe('certificates affect compliance and risk', () => {
         .attach('file', PDF, { filename: `${type}.pdf`, contentType: 'application/pdf' });
     }
 
-    const after = await request(app).get(`/api/suppliers/${supplierId}`);
+    const after = await api.get(`/api/suppliers/${supplierId}`);
 
     expect(after.body.isCompliant).toBe(true);
     expect(after.body.riskScore).toBeLessThan(before.body.riskScore);
@@ -342,7 +342,7 @@ describe('certificates affect compliance and risk', () => {
     const supplierId = await makeSupplier();
 
     for (const expiry of ['2021-01-01', '2030-01-01']) {
-      await request(app)
+      await api
         .post(`/api/suppliers/${supplierId}/certificates`)
         .field('type', 'ISO_14001')
         .field('issueDate', '2020-01-01')
@@ -350,7 +350,7 @@ describe('certificates affect compliance and risk', () => {
         .attach('file', PDF, { filename: 'iso.pdf', contentType: 'application/pdf' });
     }
 
-    const detail = await request(app).get(`/api/suppliers/${supplierId}`);
+    const detail = await api.get(`/api/suppliers/${supplierId}`);
     const isoRequirement = detail.body.requirements.find(
       (r: { type: string }) => r.type === 'ISO_14001',
     );
@@ -365,30 +365,30 @@ describe('GET /api/certificates', () => {
   it('filters by derived status and expiry window', async () => {
     const supplierId = await makeSupplier();
 
-    await request(app)
+    await api
       .post(`/api/suppliers/${supplierId}/certificates`)
       .field('type', 'ISO_14001')
       .field('issueDate', '2020-01-01')
       .field('expiryDate', '2021-01-01')
       .attach('file', PDF, { filename: 'expired.pdf', contentType: 'application/pdf' });
 
-    await request(app)
+    await api
       .post(`/api/suppliers/${supplierId}/certificates`)
       .field('type', 'SA8000')
       .field('issueDate', '2026-01-01')
       .field('expiryDate', '2035-01-01')
       .attach('file', PDF, { filename: 'valid.pdf', contentType: 'application/pdf' });
 
-    const expired = await request(app).get('/api/certificates?status=EXPIRED');
+    const expired = await api.get('/api/certificates?status=EXPIRED');
     expect(expired.body.total).toBe(1);
     expect(expired.body.data[0].type).toBe('ISO_14001');
 
-    const valid = await request(app).get('/api/certificates?status=VALID');
+    const valid = await api.get('/api/certificates?status=VALID');
     expect(valid.body.total).toBe(1);
     expect(valid.body.data[0].type).toBe('SA8000');
 
     // An expired certificate is not "expiring within N days" — it already went.
-    const soon = await request(app).get('/api/certificates?expiringWithinDays=30');
+    const soon = await api.get('/api/certificates?expiringWithinDays=30');
     expect(soon.body.total).toBe(0);
   });
 });

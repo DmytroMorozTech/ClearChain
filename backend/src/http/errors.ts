@@ -8,6 +8,8 @@ import type { ZodIssue } from 'zod';
 export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'PARENT_NOT_FOUND'
+  | 'UNAUTHORIZED'
+  | 'INVALID_CREDENTIALS'
   | 'READONLY_MODE'
   | 'NOT_FOUND'
   | 'HIERARCHY_CYCLE'
@@ -24,6 +26,12 @@ const STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   // A body referencing a parent that does not exist is a bad request, not a missing
   // resource — the thing being addressed by the URL is fine.
   PARENT_NOT_FOUND: 400,
+  // No session, or one that has expired: the caller may retry after signing in.
+  UNAUTHORIZED: 401,
+  // A sign-in attempt that failed. Kept distinct from UNAUTHORIZED so the client can
+  // tell "your session lapsed" from "that password is wrong", but deliberately vague
+  // about which of the two fields was wrong.
+  INVALID_CREDENTIALS: 401,
   READONLY_MODE: 403,
   NOT_FOUND: 404,
   HIERARCHY_CYCLE: 409,

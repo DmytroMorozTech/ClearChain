@@ -6,10 +6,10 @@ import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import { FileCheck, Factory, LayoutDashboard, Network, ShieldCheck } from 'lucide-react';
+import { FileCheck, Factory, LayoutDashboard, LogOut, Network, ShieldCheck } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router';
 
-import { useHealth } from '../api/queries.ts';
+import { useHealth, useLogout, useSession } from '../api/queries.ts';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -37,6 +37,36 @@ function HealthDot() {
         }}
       />
     </Tooltip>
+  );
+}
+
+function SessionControl() {
+  const session = useSession();
+  const logout = useLogout();
+
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ display: { xs: 'none', sm: 'block' } }}
+      >
+        {session.data?.user ?? ''}
+      </Typography>
+      <Tooltip title="Sign out">
+        <Button
+          size="small"
+          onClick={() => {
+            logout.mutate();
+          }}
+          disabled={logout.isPending}
+          startIcon={<LogOut size={16} />}
+          sx={{ color: 'text.secondary' }}
+        >
+          Sign out
+        </Button>
+      </Tooltip>
+    </Stack>
   );
 }
 
@@ -80,6 +110,7 @@ export function AppLayout() {
           </Stack>
 
           <HealthDot />
+          <SessionControl />
         </Toolbar>
       </AppBar>
 

@@ -186,12 +186,17 @@ export const chainSchema = z.object({
   edges: z.array(z.object({ id: z.string(), source: z.string(), target: z.string() })),
 });
 
+export const sessionSchema = z.object({
+  user: z.string(),
+});
+
 export const healthSchema = z.object({
   status: z.string(),
   db: z.enum(['up', 'down']),
   version: z.string(),
 });
 
+export type Session = z.infer<typeof sessionSchema>;
 export type Health = z.infer<typeof healthSchema>;
 export type Country = z.infer<typeof countrySchema>;
 export type Risk = z.infer<typeof riskSchema>;

@@ -1,10 +1,10 @@
 import path from 'node:path';
 
 import type { Express } from 'express';
-import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.ts';
+import { type ApiAgent, signIn } from './helpers/auth.ts';
 import { prisma } from '../src/db/prisma.ts';
 import { runErpSync } from '../src/services/erpSyncService.ts';
 import {
@@ -23,9 +23,11 @@ import {
 const FAILING_EXPORT = path.join(import.meta.dirname, 'fixtures', 'erp-export-null-byte.json');
 
 let app: Express;
+let api: ApiAgent;
 
 beforeAll(async () => {
   app = createApp();
+  api = await signIn(app);
   await seedCountries();
   // The export references countries beyond the three the other suites need.
   await prisma.countryRisk.createMany({
@@ -56,7 +58,7 @@ afterAll(async () => {
   await disconnect();
 });
 
-const sync = () => request(app).post('/api/erp/sync');
+const sync = () => api.post('/api/erp/sync');
 
 describe('POST /api/erp/sync — first run', () => {
   it('exercises create, update, no-op and reject in one pass', async () => {
@@ -274,7 +276,7 @@ describe('GET /api/erp/sync-logs', () => {
     await sync();
     await sync();
 
-    const response = await request(app).get('/api/erp/sync-logs?limit=5');
+    const response = await api.get('/api/erp/sync-logs?limit=5');
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(2);
@@ -290,7 +292,7 @@ describe('GET /api/erp/sync-logs', () => {
   it('surfaces the last sync on the dashboard', async () => {
     await sync();
 
-    const dashboard = await request(app).get('/api/dashboard');
+    const dashboard = await api.get('/api/dashboard');
 
     expect(dashboard.body.lastSync).not.toBeNull();
     expect(dashboard.body.lastSync.status).toBe('PARTIAL');

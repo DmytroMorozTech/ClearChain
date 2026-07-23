@@ -1,11 +1,14 @@
+import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
 import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router';
 
+import { useSession } from './api/queries.ts';
 import { AppLayout } from './components/AppLayout.tsx';
 import { CertificatesPage } from './pages/CertificatesPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
+import { LoginPage } from './pages/LoginPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
 import { SupplierDetailPage } from './pages/SupplierDetailPage.tsx';
 import { SuppliersPage } from './pages/SuppliersPage.tsx';
@@ -29,6 +32,24 @@ function RouteFallback() {
 }
 
 export default function App() {
+  const session = useSession();
+
+  // First load: neither signed in nor signed out yet. Rendering the login form here
+  // would flash it at someone who already has a valid session.
+  if (session.isPending) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+        <CircularProgress size={28} />
+      </Box>
+    );
+  }
+
+  // The guard is here rather than on each route: a screen added later is behind it by
+  // default, which mirrors how the API mounts its own session check.
+  if (session.isError || session.data === undefined) {
+    return <LoginPage />;
+  }
+
   return (
     <Routes>
       <Route element={<AppLayout />}>

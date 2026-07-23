@@ -8,6 +8,7 @@ import {
   dashboardSchema,
   healthSchema,
   paginated,
+  sessionSchema,
   supplierDetailSchema,
   supplierSummarySchema,
   syncLogSchema,
@@ -21,6 +22,7 @@ import { z } from 'zod';
  * chain, so most invalidations are deliberately broad.
  */
 export const queryKeys = {
+  session: ['session'] as const,
   health: ['health'] as const,
   dashboard: ['dashboard'] as const,
   chain: ['chain'] as const,
@@ -51,6 +53,42 @@ export interface CertificateListParams {
   page?: number;
   pageSize?: number;
 }
+
+/**
+ * The gate the app checks on load. A 401 here is not an error condition — it is simply
+ * "not signed in yet", so it must not be retried and must not be logged as a failure.
+ */
+export const useSession = () =>
+  useQuery({
+    queryKey: queryKeys.session,
+    queryFn: ({ signal }) => api.get('/auth/me', sessionSchema, signal),
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const useLogin = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (credentials: { username: string; password: string }) =>
+      api.post('/auth/login', sessionSchema, credentials),
+    onSuccess: (session) => {
+      client.setQueryData(queryKeys.session, session);
+      void client.invalidateQueries();
+    },
+  });
+};
+
+export const useLogout = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post('/auth/logout', z.unknown()),
+    onSuccess: () => {
+      // Clear rather than invalidate: refetching every query the moment the session
+      // ends would only produce a burst of 401s.
+      client.clear();
+    },
+  });
+};
 
 export const useHealth = () =>
   useQuery({

@@ -24,6 +24,18 @@ const envSchema = z.object({
   S3_BUCKET: z.string().min(1).optional(),
   S3_REGION: z.string().min(1).optional(),
 
+  // ── Authentication ────────────────────────────────────────────────────────
+  // One shared demo account. The password is stored hashed even though it is meant to
+  // be handed out, because an environment variable holding readable credentials is the
+  // kind of thing that gets copied somewhere it should not be.
+  AUTH_USER: z.string().min(1).default('testUser'),
+  AUTH_PASSWORD_HASH: z
+    .string()
+    .min(1, 'run `npm run auth:hash -w @clearchain/backend -- <password>` to generate one'),
+  // Signs session cookies. Changing it invalidates every existing session at once,
+  // which is the only revocation a single-account demo needs.
+  AUTH_SECRET: z.string().min(32, 'must be at least 32 characters'),
+
   // When true, every mutating route returns 403. One variable away from a safe
   // public deployment, rather than a retrofit.
   DEMO_READONLY: z

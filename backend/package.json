@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node --watch src/index.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
+    "auth:hash": "node scripts/hash-password.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
