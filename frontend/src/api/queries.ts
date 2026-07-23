@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { api, toQuery } from './client.ts';
+import { ApiError, api, toQuery } from './client.ts';
 import {
   certificateWithSupplierSchema,
   chainSchema,
@@ -11,6 +11,7 @@ import {
   sessionSchema,
   supplierDetailSchema,
   supplierSummarySchema,
+  type Session,
   syncLogSchema,
   syncOutcomeSchema,
 } from './schemas.ts';
@@ -55,13 +56,29 @@ export interface CertificateListParams {
 }
 
 /**
- * The gate the app checks on load. A 401 here is not an error condition — it is simply
- * "not signed in yet", so it must not be retried and must not be logged as a failure.
+ * The gate the app checks on load.
+ *
+ * A 401 from /auth/me is the *answer*, not a failure: it means nobody is signed in,
+ * which is an ordinary state this screen exists to handle. Modelling it as a query
+ * error was the mistake behind two separate bugs — an error state the gate reacted to
+ * only indirectly, and a refetch loop where the query's own failure re-triggered it.
+ * Returning null instead makes "signed out" a value the gate can read directly.
  */
+export async function fetchSession(signal?: AbortSignal): Promise<Session | null> {
+  try {
+    return await api.get('/auth/me', sessionSchema, signal);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return null;
+    // Anything else — a network failure, a 500 — really is a failure, and the gate
+    // should not quietly report it as "signed out".
+    throw error;
+  }
+}
+
 export const useSession = () =>
   useQuery({
     queryKey: queryKeys.session,
-    queryFn: ({ signal }) => api.get('/auth/me', sessionSchema, signal),
+    queryFn: ({ signal }) => fetchSession(signal),
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
@@ -81,11 +98,17 @@ export const useLogin = () => {
 export const useLogout = () => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post('/auth/logout', z.unknown()),
+    // 204, no body: `command` does not try to parse one.
+    mutationFn: () => api.command('/auth/logout'),
     onSuccess: () => {
-      // Clear rather than invalidate: refetching every query the moment the session
-      // ends would only produce a burst of 401s.
-      client.clear();
+      // Written directly rather than invalidated, so the gate flips on this line
+      // instead of after a round trip. Everything else is dropped because it was
+      // fetched for a session that no longer exists; refetching it would only produce
+      // a burst of 401s on the way to the sign-in screen.
+      client.setQueryData(queryKeys.session, null);
+      client.removeQueries({
+        predicate: (query) => query.queryKey[0] !== queryKeys.session[0],
+      });
     },
   });
 };

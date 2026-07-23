@@ -44,9 +44,10 @@ export default function App() {
     );
   }
 
-  // The guard is here rather than on each route: a screen added later is behind it by
-  // default, which mirrors how the API mounts its own session check.
-  if (session.isError || session.data === undefined) {
+  // null is "signed out" — a value, not an error — so this reads as a plain check
+  // rather than as error handling. The guard sits here rather than on each route, so a
+  // screen added later is behind it by default, mirroring how the API mounts its own.
+  if (session.data == null) {
     return <LoginPage />;
   }
 

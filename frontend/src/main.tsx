@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 
 import App from './App.tsx';
-import { ApiError } from './api/client.ts';
+import { ApiError, shouldRecheckSession } from './api/client.ts';
 import { theme } from './theme.ts';
 
 const queryClient = new QueryClient({
@@ -17,8 +17,8 @@ const queryClient = new QueryClient({
    * notice for itself.
    */
   queryCache: new QueryCache({
-    onError: (error) => {
-      if (error instanceof ApiError && error.status === 401) {
+    onError: (error, query) => {
+      if (shouldRecheckSession(error, query.queryKey)) {
         void queryClient.invalidateQueries({ queryKey: ['session'] });
       }
     },

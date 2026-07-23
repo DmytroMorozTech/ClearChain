@@ -91,6 +91,19 @@ async function request<T extends ZodType>(
   return parsed.data;
 }
 
+/**
+ * For endpoints that answer 204 with no body.
+ *
+ * Kept separate from the methods above rather than folded into them: `response.json()`
+ * throws on an empty body, so a helper that assumes every successful response carries
+ * JSON turns a perfectly good 204 into a rejected promise — the request succeeds, the
+ * caller's success path never runs, and nothing appears to have happened.
+ */
+async function command(method: 'POST' | 'DELETE', path: string): Promise<void> {
+  const response = await fetch(`${BASE_URL}${path}`, { method });
+  if (!response.ok) throw await toApiError(response);
+}
+
 export const api = {
   get: <T extends ZodType>(path: string, schema: T, signal?: AbortSignal) =>
     request(path, schema, signal ? { signal } : {}),
@@ -101,12 +114,27 @@ export const api = {
   patch: <T extends ZodType>(path: string, schema: T, body: unknown) =>
     request(path, schema, { method: 'PATCH', body }),
 
-  /** DELETE returns 204 with no body, so there is nothing to parse. */
-  delete: async (path: string): Promise<void> => {
-    const response = await fetch(`${BASE_URL}${path}`, { method: 'DELETE' });
-    if (!response.ok) throw await toApiError(response);
-  },
+  /** POST with nothing to send and nothing to read back — sign-out, for instance. */
+  command: (path: string) => command('POST', path),
+
+  delete: (path: string) => command('DELETE', path),
 };
+
+/**
+ * Whether a failed query means the session should be re-checked.
+ *
+ * The session query answering 401 *is* the signed-out state — it is the expected reply
+ * when nobody has signed in yet, not a signal that something needs re-checking. Acting
+ * on it would invalidate the very query that just failed, refetch it, receive the same
+ * 401 and go round again: a loop that runs as fast as the network allows and empties
+ * the rate-limit bucket in seconds, on the sign-in screen of all places.
+ *
+ * Extracted from the query-cache wiring so the rule can be tested without mounting React.
+ */
+export function shouldRecheckSession(error: unknown, queryKey: readonly unknown[]): boolean {
+  if (!(error instanceof ApiError) || error.status !== 401) return false;
+  return queryKey[0] !== 'session';
+}
 
 /** Builds a query string, dropping empty values so filters can be passed through freely. */
 export function toQuery(params: Record<string, string | number | boolean | undefined>): string {
