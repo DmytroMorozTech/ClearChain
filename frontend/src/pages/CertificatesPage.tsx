@@ -22,7 +22,11 @@ import { Link as RouterLink, useSearchParams } from 'react-router';
 import { fileUrl } from '../api/client.ts';
 import { useCertificates } from '../api/queries.ts';
 import { CertificateStatusChip } from '../components/CertificateStatusChip.tsx';
+import { FilterBar } from '../components/FilterBar.tsx';
 import { CERTIFICATE_LABELS, formatCountdown, formatDate, formatFileSize } from '../format.ts';
+
+/** Owned by the filter bar: counted, and cleared, as one set. */
+const FILTER_KEYS = ['status', 'type', 'expiringWithinDays'] as const;
 
 export function CertificatesPage() {
   const [params, setParams] = useSearchParams();
@@ -55,7 +59,7 @@ export function CertificatesPage() {
         {data && <Typography color="text.secondary">{data.total} on file</Typography>}
       </Stack>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <FilterBar filterKeys={FILTER_KEYS}>
         <Box
           sx={{
             display: 'grid',
@@ -116,7 +120,7 @@ export function CertificatesPage() {
             <MenuItem value="90">90 days</MenuItem>
           </TextField>
         </Box>
-      </Paper>
+      </FilterBar>
 
       {isError && <Alert severity="error">{error.message}</Alert>}
 

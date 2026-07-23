@@ -19,10 +19,21 @@ import { Check, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { useCountries, useSuppliers } from '../api/queries.ts';
+import { FilterBar } from '../components/FilterBar.tsx';
 import { RiskChip } from '../components/RiskChip.tsx';
 import { CATEGORY_LABELS } from '../format.ts';
 
 type SortField = 'name' | 'tier' | 'riskScore';
+
+/** Owned by the filter bar: counted, and cleared, as one set. */
+const FILTER_KEYS = [
+  'search',
+  'tier',
+  'riskLevel',
+  'countryCode',
+  'category',
+  'compliant',
+] as const;
 
 /**
  * Filters live in the URL rather than in component state.
@@ -69,14 +80,7 @@ export function SuppliersPage() {
     update('sort', `${field}:${direction}`);
   }
 
-  const activeFilters = [
-    'search',
-    'tier',
-    'riskLevel',
-    'countryCode',
-    'category',
-    'compliant',
-  ].filter((key) => params.get(key)).length;
+  const activeFilters = FILTER_KEYS.filter((key) => params.get(key)).length;
 
   return (
     <Stack spacing={2.5}>
@@ -90,7 +94,7 @@ export function SuppliersPage() {
         )}
       </Stack>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <FilterBar filterKeys={FILTER_KEYS}>
         <Box
           sx={{
             display: 'grid',
@@ -180,7 +184,7 @@ export function SuppliersPage() {
             <MenuItem value="false">Not compliant</MenuItem>
           </TextField>
         </Box>
-      </Paper>
+      </FilterBar>
 
       {isError && <Alert severity="error">{error.message}</Alert>}
 
