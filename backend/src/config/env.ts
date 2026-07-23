@@ -19,6 +19,11 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('./uploads'),
   MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(5_242_880),
 
+  // Required only when STORAGE_DRIVER=s3; the factory enforces that pairing so a
+  // half-configured S3 setup fails at startup rather than on first upload.
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_REGION: z.string().min(1).optional(),
+
   // When true, every mutating route returns 403. One variable away from a safe
   // public deployment, rather than a retrofit.
   DEMO_READONLY: z

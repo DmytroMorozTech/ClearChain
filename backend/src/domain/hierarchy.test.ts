@@ -7,7 +7,7 @@ import {
   subtreeRelativeDepth,
   validateReparent,
   wouldCreateCycle,
-} from './hierarchy.js';
+} from './hierarchy.ts';
 
 /** a -> b -> c is a full three-tier branch; d is a separate root. */
 const chain: HierarchyNode[] = [

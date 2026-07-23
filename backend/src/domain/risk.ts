@@ -5,7 +5,7 @@ import {
   type RequirementEvaluation,
   type RequirementStatus,
   evaluateRequirements,
-} from './compliance.js';
+} from './compliance.ts';
 
 export type RiskLevel = 'GREEN' | 'YELLOW' | 'RED';
 

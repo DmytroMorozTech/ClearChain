@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { EXPIRING_SOON_DAYS } from '../config/thresholds.js';
-import { deriveCertificateStatus } from './certificateStatus.js';
-import { daysBetween, utcDate } from './dates.js';
+import { EXPIRING_SOON_DAYS } from '../config/thresholds.ts';
+import { deriveCertificateStatus } from './certificateStatus.ts';
+import { daysBetween, utcDate } from './dates.ts';
 
 // Frozen. Every expectation below is stated relative to this date, so the suite asserts
 // the same thing today as it will in five years.

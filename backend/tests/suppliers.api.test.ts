@@ -2,8 +2,8 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { createApp } from '../src/app.js';
-import { disconnect, resetDatabase, seedCountries } from './helpers/db.js';
+import { createApp } from '../src/app.ts';
+import { disconnect, resetDatabase, seedCountries } from './helpers/db.ts';
 
 let app: Express;
 

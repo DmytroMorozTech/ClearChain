@@ -5,7 +5,19 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2023"],
     "types": ["node"],
-    "noEmit": true
+    "noEmit": true,
+
+    // Relative imports are written with their real `.ts` extension so Node 24 can run
+    // the sources directly (`node --watch src/index.ts`) with no loader and no
+    // transpiler in the dev path. tsc rewrites them to `.js` on emit, so the compiled
+    // output in dist/ is ordinary ESM that plain `node` resolves.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+
+    // Guard rail for the above: fails the build on syntax Node cannot strip — TS enums,
+    // namespaces, parameter properties, decorators. Without it, native execution would
+    // break at runtime rather than at compile time.
+    "erasableSyntaxOnly": true
   },
   "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts", "prisma.config.ts"]
 }

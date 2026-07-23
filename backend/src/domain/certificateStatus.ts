@@ -1,5 +1,5 @@
-import { EXPIRING_SOON_DAYS } from '../config/thresholds.js';
-import { daysBetween } from './dates.js';
+import { EXPIRING_SOON_DAYS } from '../config/thresholds.ts';
+import { daysBetween } from './dates.ts';
 
 export type CertificateStatus = 'VALID' | 'EXPIRING_SOON' | 'EXPIRED';
 

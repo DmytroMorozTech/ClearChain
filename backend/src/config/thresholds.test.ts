@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DASHBOARD_EXPIRY_WINDOW_DAYS, EXPIRING_SOON_DAYS } from './thresholds.js';
+import { DASHBOARD_EXPIRY_WINDOW_DAYS, EXPIRING_SOON_DAYS } from './thresholds.ts';
 
 describe('threshold constants', () => {
   it('matches the values fixed in the spec (§5.1)', () => {

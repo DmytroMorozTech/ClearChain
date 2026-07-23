@@ -7,20 +7,24 @@ import {
   listSuppliers,
   loadRiskIndex,
   updateSupplier,
-} from '../../services/supplierService.js';
-import { notFound } from '../errors.js';
+} from '../../services/supplierService.ts';
+import { createCertificate, listCertificates } from '../../services/certificateService.ts';
+import { AppError, notFound } from '../errors.ts';
 import {
+  createCertificateSchema,
   createSupplierSchema,
   idParamSchema,
   listSuppliersQuerySchema,
   updateSupplierSchema,
-} from '../schemas.js';
+} from '../schemas.ts';
 import {
+  serializeCertificate,
   serializeRisk,
   serializeSupplierDetail,
   serializeSupplierSummary,
-} from '../serializers.js';
-import { parseBody, parseParams, parseQuery } from '../validate.js';
+} from '../serializers.ts';
+import { uploadCertificateFile } from '../upload.ts';
+import { parseBody, parseParams, parseQuery } from '../validate.ts';
 
 export const suppliersRouter: Router = Router();
 
@@ -105,4 +109,47 @@ suppliersRouter.delete('/:id', async (req, res) => {
   const { id } = parseParams(req, idParamSchema);
   await deleteSupplier(id);
   res.status(204).send();
+});
+
+// ---------------------------------------------------------------------------
+// Certificates belonging to one supplier
+// ---------------------------------------------------------------------------
+
+suppliersRouter.get('/:id/certificates', async (req, res) => {
+  const { id } = parseParams(req, idParamSchema);
+  const asOfDate = asOf();
+
+  const { rows, total } = await listCertificates(
+    { supplierId: id },
+    { page: 1, pageSize: 100 },
+    asOfDate,
+  );
+
+  res.json({
+    data: rows.map((certificate) => serializeCertificate(certificate, asOfDate)),
+    total,
+  });
+});
+
+/**
+ * Multer runs first and holds the file in memory; nothing reaches storage until the
+ * body, the dates and the file's actual byte signature have all been checked.
+ */
+suppliersRouter.post('/:id/certificates', uploadCertificateFile, async (req, res) => {
+  const { id } = parseParams(req, idParamSchema);
+  const input = parseBody(req, createCertificateSchema);
+
+  if (!req.file) {
+    throw new AppError('VALIDATION_ERROR', 'A certificate file is required', [
+      { path: 'file', message: 'no file was uploaded under the field name "file"' },
+    ]);
+  }
+
+  const certificate = await createCertificate(id, input, {
+    buffer: req.file.buffer,
+    originalName: req.file.originalname,
+    declaredMimeType: req.file.mimetype,
+  });
+
+  res.status(201).json(serializeCertificate(certificate, asOf()));
 });

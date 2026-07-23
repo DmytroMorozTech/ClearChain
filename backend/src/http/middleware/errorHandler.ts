@@ -1,8 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
+import { MulterError } from 'multer';
 import { ZodError } from 'zod';
 
-import { env } from '../../config/env.js';
-import { AppError, zodIssuesToDetails } from '../errors.js';
+import { env } from '../../config/env.ts';
+import { AppError, zodIssuesToDetails } from '../errors.ts';
 
 export function notFoundHandler(_req: Request, res: Response): void {
   res.status(404).json({
@@ -35,6 +36,21 @@ export function errorHandler(
         code: error.code,
         message: error.message,
         ...(error.details ? { details: error.details } : {}),
+      },
+    });
+    return;
+  }
+
+  // Multer rejects an oversized upload while it is still streaming, before any route
+  // code runs, so the size limit has to be translated here rather than in the handler.
+  if (error instanceof MulterError) {
+    const tooLarge = error.code === 'LIMIT_FILE_SIZE';
+    res.status(tooLarge ? 413 : 400).json({
+      error: {
+        code: tooLarge ? 'PAYLOAD_TOO_LARGE' : 'VALIDATION_ERROR',
+        message: tooLarge
+          ? `File exceeds the ${String(env.MAX_UPLOAD_BYTES)} byte upload limit.`
+          : `Upload rejected: ${error.message}`,
       },
     });
     return;

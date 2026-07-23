@@ -1,4 +1,7 @@
-import { prisma } from '../../src/db/prisma.js';
+import { rm } from 'node:fs/promises';
+
+import { env } from '../../src/config/env.ts';
+import { prisma } from '../../src/db/prisma.ts';
 
 /**
  * Reference data the FK on Supplier.countryCode requires. Seeded once per file rather
@@ -20,6 +23,13 @@ export async function resetDatabase(): Promise<void> {
     'TRUNCATE TABLE "Certificate", "Supplier", "ErpSyncLog" RESTART IDENTITY CASCADE',
   );
 }
+
+/** Empties the throwaway upload directory so file assertions start from nothing. */
+export async function resetUploads(): Promise<void> {
+  await rm(env.UPLOAD_DIR, { recursive: true, force: true });
+}
+
+export const uploadRoot = (): string => env.UPLOAD_DIR;
 
 export async function disconnect(): Promise<void> {
   await prisma.$disconnect();

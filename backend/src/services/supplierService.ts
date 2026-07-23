@@ -1,15 +1,16 @@
 import type { Prisma, SupplierCategory } from '@prisma/client';
 
-import { evaluateRequirements, isCompliant } from '../domain/compliance.js';
+import { evaluateRequirements, isCompliant } from '../domain/compliance.ts';
 import {
   type HierarchyViolation,
   MAX_TIER,
   computeDepth,
   validateReparent,
-} from '../domain/hierarchy.js';
-import { type RiskBreakdown, type RiskLevel, computeRiskForTree } from '../domain/risk.js';
-import { prisma } from '../db/prisma.js';
-import { AppError, notFound } from '../http/errors.js';
+} from '../domain/hierarchy.ts';
+import { type RiskBreakdown, type RiskLevel, computeRiskForTree } from '../domain/risk.ts';
+import { prisma } from '../db/prisma.ts';
+import { AppError, notFound } from '../http/errors.ts';
+import { getStorage } from '../storage/index.ts';
 
 type Tx = Prisma.TransactionClient;
 
@@ -306,10 +307,14 @@ export async function updateSupplier(id: string, input: UpdateSupplierInput) {
  * they belong to the supplier rather than being independent records.
  */
 export async function deleteSupplier(id: string): Promise<void> {
-  await prisma.$transaction(async (tx: Tx) => {
+  const orphanedKeys = await prisma.$transaction(async (tx: Tx) => {
     const existing = await tx.supplier.findUnique({
       where: { id },
-      select: { id: true, _count: { select: { children: true } } },
+      select: {
+        id: true,
+        _count: { select: { children: true } },
+        certificates: { select: { storageKey: true } },
+      },
     });
     if (existing === null) throw notFound('Supplier');
 
@@ -317,12 +322,27 @@ export async function deleteSupplier(id: string): Promise<void> {
     if (childCount > 0) {
       throw new AppError(
         'SUPPLIER_HAS_CHILDREN',
-        `Cannot delete: ${childCount} supplier(s) sit upstream of this one. Reassign or delete them first.`,
+        `Cannot delete: ${String(childCount)} supplier(s) sit upstream of this one. Reassign or delete them first.`,
       );
     }
 
+    // Certificates cascade in the database; their stored objects do not, so their keys
+    // are collected here to be swept after the transaction commits.
     await tx.supplier.delete({ where: { id } });
+    return existing.certificates.map((certificate) => certificate.storageKey);
   });
+
+  // Deliberately after the commit and deliberately best-effort. A failure here leaves
+  // unreferenced blobs, which are inert; doing it inside the transaction would mean a
+  // rollback could not undo the deletions the storage layer had already performed.
+  const storage = getStorage();
+  await Promise.all(
+    orphanedKeys.map((key) =>
+      storage.delete(key).catch((error: unknown) => {
+        console.error('Supplier deleted but its certificate object remains', key, error);
+      }),
+    ),
+  );
 }
 
 export async function supplierDepth(id: string): Promise<number> {

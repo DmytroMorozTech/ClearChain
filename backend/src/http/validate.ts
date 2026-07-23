@@ -1,7 +1,7 @@
 import type { Request } from 'express';
 import type { ZodType, z } from 'zod';
 
-import { AppError, zodIssuesToDetails } from './errors.js';
+import { AppError, zodIssuesToDetails } from './errors.ts';
 
 function parseOrThrow<T extends ZodType>(schema: T, value: unknown, what: string): z.infer<T> {
   const result = schema.safeParse(value);

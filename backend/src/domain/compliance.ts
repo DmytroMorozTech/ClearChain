@@ -1,7 +1,7 @@
 import type { CertificateType, SupplierCategory } from '@prisma/client';
 
-import { type CertificateStatus, deriveCertificateStatus } from './certificateStatus.js';
-import { requiredCertificatesFor } from './requiredCertificates.js';
+import { type CertificateStatus, deriveCertificateStatus } from './certificateStatus.ts';
+import { requiredCertificatesFor } from './requiredCertificates.ts';
 
 /**
  * The shape this module needs from a certificate. Deliberately narrower than the Prisma

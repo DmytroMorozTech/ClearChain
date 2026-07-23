@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { prisma } from '../../db/prisma.js';
+import { prisma } from '../../db/prisma.ts';
 
 export const APP_VERSION = '0.1.0';
 

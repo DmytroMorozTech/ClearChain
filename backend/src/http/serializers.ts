@@ -1,8 +1,8 @@
 import type { Certificate, CountryRisk, Supplier } from '@prisma/client';
 
-import { deriveCertificateStatus } from '../domain/certificateStatus.js';
-import type { RequirementEvaluation } from '../domain/compliance.js';
-import type { RiskBreakdown } from '../domain/risk.js';
+import { deriveCertificateStatus } from '../domain/certificateStatus.ts';
+import type { RequirementEvaluation } from '../domain/compliance.ts';
+import type { RiskBreakdown } from '../domain/risk.ts';
 
 /**
  * Calendar dates cross the wire as `YYYY-MM-DD`, never as timestamps.

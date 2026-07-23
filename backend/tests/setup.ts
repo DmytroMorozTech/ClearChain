@@ -1,5 +1,8 @@
 import 'dotenv/config';
 
+import os from 'node:os';
+import path from 'node:path';
+
 /**
  * Redirects the application at the test database *before* any application module is
  * imported. src/config/env.ts reads process.env at module load and src/db/prisma.ts
@@ -20,3 +23,8 @@ if (!testDatabaseUrl) {
 
 process.env.DATABASE_URL = testDatabaseUrl;
 process.env.NODE_ENV = 'test';
+
+// Uploads go to a throwaway directory so the suite never writes into the repo's own
+// ./uploads folder, and so assertions about what landed on disk start from empty.
+process.env.STORAGE_DRIVER = 'local';
+process.env.UPLOAD_DIR = path.join(os.tmpdir(), 'clearchain-test-uploads');

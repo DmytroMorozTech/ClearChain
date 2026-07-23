@@ -3,12 +3,13 @@ import express, { type Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 
-import { env } from './config/env.js';
-import { AppError } from './http/errors.js';
-import { errorHandler, notFoundHandler } from './http/middleware/errorHandler.js';
-import { readonlyGuard } from './http/middleware/readonly.js';
-import { healthRouter } from './http/routes/health.js';
-import { suppliersRouter } from './http/routes/suppliers.js';
+import { env } from './config/env.ts';
+import { AppError } from './http/errors.ts';
+import { errorHandler, notFoundHandler } from './http/middleware/errorHandler.ts';
+import { readonlyGuard } from './http/middleware/readonly.ts';
+import { certificatesRouter } from './http/routes/certificates.ts';
+import { healthRouter } from './http/routes/health.ts';
+import { suppliersRouter } from './http/routes/suppliers.ts';
 
 /**
  * Builds the app without binding a port, so integration tests can drive it through
@@ -39,6 +40,7 @@ export function createApp(): Express {
   app.use('/api', readonlyGuard);
   app.use('/api', healthRouter);
   app.use('/api/suppliers', suppliersRouter);
+  app.use('/api/certificates', certificatesRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

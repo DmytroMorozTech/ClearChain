@@ -15,7 +15,7 @@ export default defineConfig({
   migrations: {
     path: 'prisma/migrations',
     // Wired up in Phase 5; harmless until `prisma db seed` is actually invoked.
-    seed: 'tsx prisma/seed.ts',
+    seed: 'node prisma/seed.ts',
   },
   datasource: {
     // Read straight from process.env rather than via Prisma's `env()` helper. The

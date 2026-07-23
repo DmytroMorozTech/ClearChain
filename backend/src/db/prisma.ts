@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
-import { env } from '../config/env.js';
+import { env } from '../config/env.ts';
 
 /**
  * Prisma 7 ships a Rust-free client: queries are compiled by a WASM query compiler and

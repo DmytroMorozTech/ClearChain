@@ -57,3 +57,56 @@ export const listSuppliersQuerySchema = z.object({
 });
 
 export type ListSuppliersQuery = z.infer<typeof listSuppliersQuerySchema>;
+
+// ---------------------------------------------------------------------------
+// Certificates
+// ---------------------------------------------------------------------------
+
+export const certificateTypeSchema = z.enum([
+  'CSRD',
+  'LKSG',
+  'EUDR',
+  'CBAM',
+  'ISO_14001',
+  'SA8000',
+  'OEKO_TEX',
+]);
+
+export const certificateStatusSchema = z.enum(['VALID', 'EXPIRING_SOON', 'EXPIRED']);
+
+/**
+ * Calendar dates arrive as `YYYY-MM-DD` and become UTC midnight. Accepting a full
+ * timestamp here would let a client's local offset decide which day a certificate
+ * expires on.
+ */
+const dateOnlySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a calendar date in YYYY-MM-DD form')
+  .transform((value) => new Date(`${value}T00:00:00.000Z`))
+  .refine((date) => !Number.isNaN(date.getTime()), 'is not a real date');
+
+export const createCertificateSchema = z
+  .strictObject({
+    type: certificateTypeSchema,
+    issueDate: dateOnlySchema,
+    expiryDate: dateOnlySchema,
+    issuer: z.string().trim().min(1).max(200).optional(),
+    certificateNumber: z.string().trim().min(1).max(100).optional(),
+  })
+  .refine((value) => value.expiryDate > value.issueDate, {
+    message: 'must be later than issueDate',
+    path: ['expiryDate'],
+  })
+  .refine((value) => value.issueDate.getTime() <= Date.now(), {
+    message: 'cannot be in the future',
+    path: ['issueDate'],
+  });
+
+export const listCertificatesQuerySchema = z.object({
+  supplierId: z.uuid().optional(),
+  type: certificateTypeSchema.optional(),
+  status: certificateStatusSchema.optional(),
+  expiringWithinDays: z.coerce.number().int().min(0).max(3650).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+});

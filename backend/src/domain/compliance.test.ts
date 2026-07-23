@@ -6,8 +6,8 @@ import {
   evaluateRequirements,
   isCompliant,
   selectEffectiveCertificates,
-} from './compliance.js';
-import { utcDate } from './dates.js';
+} from './compliance.ts';
+import { utcDate } from './dates.ts';
 
 const AS_OF = utcDate(2026, 7, 1);
 

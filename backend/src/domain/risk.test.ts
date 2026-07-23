@@ -1,15 +1,15 @@
 import type { CertificateType, SupplierCategory } from '@prisma/client';
 import { describe, expect, it } from 'vitest';
 
-import type { CertificateLike } from './compliance.js';
-import { utcDate } from './dates.js';
+import type { CertificateLike } from './compliance.ts';
+import { utcDate } from './dates.ts';
 import {
   type RiskLevel,
   type SupplierRiskNode,
   bandFor,
   computeRisk,
   computeRiskForTree,
-} from './risk.js';
+} from './risk.ts';
 
 const AS_OF = utcDate(2026, 7, 1);
 
