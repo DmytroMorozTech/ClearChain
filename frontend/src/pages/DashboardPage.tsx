@@ -1,51 +1,125 @@
 import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
+import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
 import { useDashboard } from '../api/queries.ts';
+import { DistributionChart, type DistributionDatum } from '../components/DistributionChart.tsx';
+import { StatTile } from '../components/StatTile.tsx';
+import { SyncPanel } from '../components/SyncPanel.tsx';
+import { RISK_COLORS, RISK_LABELS } from '../theme.ts';
 
-/**
- * Phase 8 renders the raw figures only; the tiles and the Recharts distribution arrive
- * in Phase 10. Showing real numbers now proves the whole path works end to end — Vite
- * proxy, API client, response validation, React Query.
- */
+const INDIGO = '#4F46E5';
+
 export function DashboardPage() {
-  const { data, isPending, isError, error } = useDashboard();
+  const { data, isPending, isError, error, isFetching } = useDashboard();
+
+  if (isError) return <Alert severity="error">{error.message}</Alert>;
+
+  if (isPending) {
+    return (
+      <Stack spacing={2.5}>
+        <Typography variant="h1">Dashboard</Typography>
+        <Skeleton variant="rounded" height={140} />
+        <Skeleton variant="rounded" height={260} />
+      </Stack>
+    );
+  }
+
+  const riskData: DistributionDatum[] = data.suppliers.byRiskLevel.map((entry) => ({
+    key: entry.level,
+    label: `${RISK_LABELS[entry.level]} risk`,
+    count: entry.count,
+    color: RISK_COLORS[entry.level],
+  }));
+
+  // Tiers are one series, so they take one colour. A darker-where-bigger ramp would
+  // double-encode the bar length as hue and spend the only free channel on
+  // information the bar already shows.
+  const tierData: DistributionDatum[] = data.suppliers.byTier.map((entry) => ({
+    key: String(entry.tier),
+    label: `Tier ${String(entry.tier)}`,
+    count: entry.count,
+    color: INDIGO,
+  }));
+
+  const riskSummary = data.suppliers.byRiskLevel
+    .map((entry) => `${RISK_LABELS[entry.level].toLowerCase()} ${String(entry.count)}`)
+    .join(', ');
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h1">Dashboard</Typography>
+    // Refetching holds the previous render at reduced opacity rather than flashing a
+    // skeleton, so nothing jumps while numbers refresh.
+    <Stack spacing={2.5} sx={{ opacity: isFetching ? 0.65 : 1, transition: 'opacity 120ms' }}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <Typography variant="h1">Dashboard</Typography>
+        <Typography color="text.secondary">{data.company.name}</Typography>
+      </Stack>
 
-      {isPending && <Typography color="text.secondary">Loading…</Typography>}
-      {isError && <Alert severity="error">{error.message}</Alert>}
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2.5,
+          gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+        }}
+      >
+        <StatTile
+          hero
+          label="Suppliers compliant"
+          value={`${String(data.suppliers.compliantPercentage)}%`}
+          caption={`${String(data.suppliers.compliant)} of ${String(data.suppliers.total)} hold every required certificate`}
+          accent={INDIGO}
+        />
+        <StatTile
+          label="Suppliers tracked"
+          value={data.suppliers.total}
+          caption={`across ${String(data.suppliers.byTier.length)} tiers`}
+        />
+        <StatTile
+          label={`Expiring within ${String(data.certificates.expiryWindowDays)} days`}
+          value={data.certificates.expiringSoon}
+          caption="certificates needing renewal"
+          accent={data.certificates.expiringSoon > 0 ? RISK_COLORS.YELLOW : undefined}
+        />
+        <StatTile
+          label="Expired"
+          value={data.certificates.expired}
+          caption={`of ${String(data.certificates.total)} certificates on file`}
+          accent={data.certificates.expired > 0 ? RISK_COLORS.RED : undefined}
+        />
+      </Box>
 
-      {data && (
-        <Paper variant="outlined" sx={{ p: 3 }}>
-          <Typography variant="h2" gutterBottom>
-            {data.company.name}
-          </Typography>
-          <Typography component="pre" sx={{ fontFamily: 'monospace', fontSize: 13, m: 0 }}>
-            {[
-              `suppliers        ${String(data.suppliers.total)}`,
-              `compliant        ${String(data.suppliers.compliant)} (${String(data.suppliers.compliantPercentage)}%)`,
-              `risk             ${data.suppliers.byRiskLevel
-                .map((entry) => `${entry.level} ${String(entry.count)}`)
-                .join('   ')}`,
-              `by tier          ${data.suppliers.byTier
-                .map((entry) => `T${String(entry.tier)} ${String(entry.count)}`)
-                .join('   ')}`,
-              `certificates     ${String(data.certificates.total)}`,
-              `expiring ≤${String(data.certificates.expiryWindowDays)}d     ${String(data.certificates.expiringSoon)}`,
-              `expired          ${String(data.certificates.expired)}`,
-              `last ERP sync    ${data.lastSync ? data.lastSync.status : 'never'}`,
-            ].join('\n')}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-            Tiles and charts arrive in Phase 10.
-          </Typography>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2.5,
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+        }}
+      >
+        <Paper variant="outlined" sx={{ p: 2.5 }}>
+          <DistributionChart
+            title="Risk distribution"
+            data={riskData}
+            total={data.suppliers.total}
+            summary={`${String(data.suppliers.total)} suppliers by risk band: ${riskSummary}.`}
+          />
         </Paper>
-      )}
+
+        <Paper variant="outlined" sx={{ p: 2.5 }}>
+          <DistributionChart
+            title="Suppliers by tier"
+            data={tierData}
+            total={data.suppliers.total}
+            summary={`Tier 1 is a direct supplier, tier 3 a raw-material source. ${tierData
+              .map((datum) => `${datum.label.toLowerCase()} ${String(datum.count)}`)
+              .join(', ')}.`}
+          />
+        </Paper>
+      </Box>
+
+      <SyncPanel lastSync={data.lastSync} />
     </Stack>
   );
 }
