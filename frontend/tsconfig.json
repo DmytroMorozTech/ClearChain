@@ -6,7 +6,11 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "types": ["vite/client"],
-    "noEmit": true
+    "noEmit": true,
+
+    // Relative imports carry their real extension, matching the backend so the repo
+    // reads one way throughout. Safe here because Vite does the emitting, not tsc.
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "vite.config.ts"]
 }
