@@ -1,24 +1,45 @@
 import 'dotenv/config';
 
+import { z } from 'zod';
+
 /**
- * Environment access, read once at module load.
- *
- * Phase 3 replaces the hand-rolled `required()` below with a zod schema, so that a
- * missing or malformed variable fails at startup with one readable report rather than
- * as an undefined creeping into a query. Kept deliberately small until then.
+ * Environment is validated once, at startup, against a schema. A missing or malformed
+ * variable then fails immediately with one readable report, rather than surfacing later
+ * as an `undefined` that reached a query.
  */
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(
-      `Required environment variable ${name} is not set. Copy backend/.env.example to backend/.env.`,
-    );
-  }
-  return value;
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().int().positive().default(3001),
+
+  DATABASE_URL: z.string().min(1, 'must be a PostgreSQL connection string'),
+
+  // The only switch that selects a storage driver. NODE_ENV never influences it —
+  // coupling the two would make the S3 driver untestable outside production.
+  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+  UPLOAD_DIR: z.string().default('./uploads'),
+  MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(5_242_880),
+
+  // When true, every mutating route returns 403. One variable away from a safe
+  // public deployment, rather than a retrofit.
+  DEMO_READONLY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+
+  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  const report = parsed.error.issues
+    .map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`)
+    .join('\n');
+  throw new Error(
+    `Invalid environment configuration:\n${report}\n\nCopy backend/.env.example to backend/.env and fill it in.`,
+  );
 }
 
-export const env = {
-  DATABASE_URL: required('DATABASE_URL'),
-  NODE_ENV: process.env.NODE_ENV ?? 'development',
-  PORT: Number(process.env.PORT ?? 3001),
-} as const;
+export const env = parsed.data;
+
+export type Env = typeof env;

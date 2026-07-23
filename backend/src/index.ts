@@ -1,27 +1,19 @@
-import { DASHBOARD_EXPIRY_WINDOW_DAYS, EXPIRING_SOON_DAYS } from './config/thresholds.js';
+import { createApp } from './app.js';
+import { env } from './config/env.js';
 import { prisma } from './db/prisma.js';
 
-// The HTTP server arrives in Phase 3. Until then this entry point proves the runtime
-// path end to end: ESM + NodeNext resolution, the Prisma driver adapter, and a real
-// round trip to PostgreSQL.
-async function main(): Promise<void> {
-  const [suppliers, countries] = await Promise.all([
-    prisma.supplier.count(),
-    prisma.countryRisk.count(),
-  ]);
+const app = createApp();
 
-  console.log(
-    `ClearChain backend — database reachable ` +
-      `(suppliers: ${suppliers}, countries: ${countries}, ` +
-      `expiring-soon: ${EXPIRING_SOON_DAYS}d, dashboard window: ${DASHBOARD_EXPIRY_WINDOW_DAYS}d)`,
-  );
+const server = app.listen(env.PORT, () => {
+  console.log(`ClearChain API listening on http://localhost:${String(env.PORT)}/api`);
+});
+
+async function shutdown(signal: string): Promise<void> {
+  console.log(`\n${signal} received, shutting down.`);
+  server.close();
+  await prisma.$disconnect();
+  process.exit(0);
 }
 
-main()
-  .catch((error: unknown) => {
-    console.error('Startup failed:', error);
-    process.exitCode = 1;
-  })
-  .finally(() => {
-    void prisma.$disconnect();
-  });
+process.on('SIGINT', () => void shutdown('SIGINT'));
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
