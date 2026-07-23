@@ -1,0 +1,39 @@
+{
+  "note": "Illustrative demo data for a portfolio project. These bands are invented for the sake of producing a varied dataset and are NOT an assessment of any country. A real system would derive them from a published, citable index and record which edition it used.",
+  "bands": {
+    "LOW": 5,
+    "MEDIUM": 20,
+    "HIGH": 40
+  },
+  "countries": [
+    { "code": "DE", "name": "Germany", "band": "LOW" },
+    { "code": "NL", "name": "Netherlands", "band": "LOW" },
+    { "code": "DK", "name": "Denmark", "band": "LOW" },
+    { "code": "SE", "name": "Sweden", "band": "LOW" },
+    { "code": "FR", "name": "France", "band": "LOW" },
+    { "code": "IT", "name": "Italy", "band": "LOW" },
+    { "code": "ES", "name": "Spain", "band": "LOW" },
+    { "code": "PT", "name": "Portugal", "band": "LOW" },
+    { "code": "GB", "name": "United Kingdom", "band": "LOW" },
+    { "code": "US", "name": "United States", "band": "LOW" },
+
+    { "code": "PL", "name": "Poland", "band": "MEDIUM" },
+    { "code": "RO", "name": "Romania", "band": "MEDIUM" },
+    { "code": "BG", "name": "Bulgaria", "band": "MEDIUM" },
+    { "code": "TR", "name": "Türkiye", "band": "MEDIUM" },
+    { "code": "CN", "name": "China", "band": "MEDIUM" },
+    { "code": "VN", "name": "Vietnam", "band": "MEDIUM" },
+    { "code": "TH", "name": "Thailand", "band": "MEDIUM" },
+    { "code": "IN", "name": "India", "band": "MEDIUM" },
+    { "code": "MA", "name": "Morocco", "band": "MEDIUM" },
+    { "code": "TN", "name": "Tunisia", "band": "MEDIUM" },
+    { "code": "MX", "name": "Mexico", "band": "MEDIUM" },
+
+    { "code": "BD", "name": "Bangladesh", "band": "HIGH" },
+    { "code": "PK", "name": "Pakistan", "band": "HIGH" },
+    { "code": "KH", "name": "Cambodia", "band": "HIGH" },
+    { "code": "MM", "name": "Myanmar", "band": "HIGH" },
+    { "code": "ET", "name": "Ethiopia", "band": "HIGH" },
+    { "code": "UZ", "name": "Uzbekistan", "band": "HIGH" }
+  ]
+}

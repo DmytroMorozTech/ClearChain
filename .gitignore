@@ -15,9 +15,11 @@ requirements.md
 .env.local
 .env.*.local
 
-# Local file-storage driver target (§13). Directory is kept, contents are not.
-uploads/*
-!uploads/.gitkeep
+# Local file-storage driver target. The directory is kept, its contents are not.
+# The ** prefix matters: UPLOAD_DIR is relative to the backend's working directory, so
+# uploads land in backend/uploads/, which a root-anchored `uploads/*` would not match.
+**/uploads/*
+!**/uploads/.gitkeep
 
 *.log
 npm-debug.log*

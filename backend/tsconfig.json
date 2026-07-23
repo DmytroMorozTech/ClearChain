@@ -19,5 +19,12 @@
     // break at runtime rather than at compile time.
     "erasableSyntaxOnly": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts", "prisma.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "prisma/**/*.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts",
+    "prisma.config.ts"
+  ]
 }

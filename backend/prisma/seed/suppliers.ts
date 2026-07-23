@@ -1,0 +1,347 @@
+import type { SupplierCategory } from '@prisma/client';
+
+/**
+ * A hand-curated supply chain rather than randomly generated names.
+ *
+ * Randomising the roster would have been less code, but the point of the demo data is
+ * that it reads like a real apparel supply chain: European tier-1 partners, weaving and
+ * dyeing further upstream, raw fibre at the far end. Certificate coverage *is*
+ * randomised, from a fixed seed, because that is what needs to vary.
+ *
+ * `parent` refers to another entry's `ref`. Tier is never stated here — it is derived
+ * from depth when the chain is written, the same way the API derives it.
+ */
+export interface SupplierFixture {
+  ref: string;
+  externalId: string;
+  name: string;
+  countryCode: string;
+  category: SupplierCategory;
+  parent: string | null;
+  contactEmail: string;
+}
+
+export const SUPPLIER_FIXTURES: readonly SupplierFixture[] = [
+  // ---- Tier 1: direct suppliers of Lindenwear GmbH -------------------------
+  {
+    ref: 'hansen',
+    externalId: 'SUP-1001',
+    name: 'Hansen Textilwerk GmbH',
+    countryCode: 'DE',
+    category: 'MANUFACTURING',
+    parent: null,
+    contactEmail: 'compliance@hansen-textilwerk.example',
+  },
+  {
+    ref: 'rossi',
+    externalId: 'SUP-1002',
+    name: 'Filatura Rossi S.p.A.',
+    countryCode: 'IT',
+    category: 'MANUFACTURING',
+    parent: null,
+    contactEmail: 'qualita@filatura-rossi.example',
+  },
+  {
+    ref: 'porto',
+    externalId: 'SUP-1003',
+    name: 'Porto Malhas Lda',
+    countryCode: 'PT',
+    category: 'MANUFACTURING',
+    parent: null,
+    contactEmail: 'geral@porto-malhas.example',
+  },
+  {
+    ref: 'anadolu',
+    externalId: 'SUP-1004',
+    name: 'Anadolu Konfeksiyon A.S.',
+    countryCode: 'TR',
+    category: 'MANUFACTURING',
+    parent: null,
+    contactEmail: 'uyum@anadolu-konfeksiyon.example',
+  },
+  {
+    ref: 'vistula',
+    externalId: 'SUP-1005',
+    name: 'Vistula Apparel Sp. z o.o.',
+    countryCode: 'PL',
+    category: 'MANUFACTURING',
+    parent: null,
+    contactEmail: 'biuro@vistula-apparel.example',
+  },
+  {
+    ref: 'brenner',
+    externalId: 'SUP-1006',
+    name: 'Brenner Logistik GmbH',
+    countryCode: 'DE',
+    category: 'LOGISTICS',
+    parent: null,
+    contactEmail: 'disposition@brenner-logistik.example',
+  },
+  {
+    ref: 'nordfracht',
+    externalId: 'SUP-1007',
+    name: 'Nordfracht Spedition GmbH',
+    countryCode: 'DE',
+    category: 'LOGISTICS',
+    parent: null,
+    contactEmail: 'kontakt@nordfracht.example',
+  },
+  {
+    ref: 'meridian',
+    externalId: 'SUP-1008',
+    name: 'Meridian Sourcing Ltd',
+    countryCode: 'GB',
+    category: 'LOGISTICS',
+    parent: null,
+    contactEmail: 'ops@meridian-sourcing.example',
+  },
+
+  // ---- Tier 2: sub-suppliers ----------------------------------------------
+  {
+    ref: 'dokuma',
+    externalId: 'SUP-2001',
+    name: 'Dokuma Tekstil Sanayi A.S.',
+    countryCode: 'TR',
+    category: 'MANUFACTURING',
+    parent: 'anadolu',
+    contactEmail: 'info@dokuma-tekstil.example',
+  },
+  {
+    ref: 'ege',
+    externalId: 'SUP-2002',
+    name: 'Ege Boyahane Ltd Sti',
+    countryCode: 'TR',
+    category: 'MANUFACTURING',
+    parent: 'anadolu',
+    contactEmail: 'kalite@ege-boyahane.example',
+  },
+  {
+    ref: 'lombardia',
+    externalId: 'SUP-2003',
+    name: 'Lombardia Tintoria S.r.l.',
+    countryCode: 'IT',
+    category: 'MANUFACTURING',
+    parent: 'rossi',
+    contactEmail: 'info@lombardia-tintoria.example',
+  },
+  {
+    ref: 'braga',
+    externalId: 'SUP-2004',
+    name: 'Braga Fiacao Lda',
+    countryCode: 'PT',
+    category: 'MANUFACTURING',
+    parent: 'porto',
+    contactEmail: 'producao@braga-fiacao.example',
+  },
+  {
+    ref: 'yifeng',
+    externalId: 'SUP-2005',
+    name: 'Guangzhou Yifeng Garment Co Ltd',
+    countryCode: 'CN',
+    category: 'MANUFACTURING',
+    parent: 'hansen',
+    contactEmail: 'export@yifeng-garment.example',
+  },
+  {
+    ref: 'haitai',
+    externalId: 'SUP-2006',
+    name: 'Ningbo Haitai Knitwear Co Ltd',
+    countryCode: 'CN',
+    category: 'MANUFACTURING',
+    parent: 'hansen',
+    contactEmail: 'sales@haitai-knitwear.example',
+  },
+  {
+    ref: 'dhaka',
+    externalId: 'SUP-2007',
+    name: 'Dhaka Fashion Works Ltd',
+    countryCode: 'BD',
+    category: 'MANUFACTURING',
+    parent: 'hansen',
+    contactEmail: 'compliance@dhaka-fashion.example',
+  },
+  {
+    ref: 'chattogram',
+    externalId: 'SUP-2008',
+    name: 'Chattogram Apparel Mills Ltd',
+    countryCode: 'BD',
+    category: 'MANUFACTURING',
+    parent: 'anadolu',
+    contactEmail: 'audit@chattogram-apparel.example',
+  },
+  {
+    ref: 'hanoi',
+    externalId: 'SUP-2009',
+    name: 'Hanoi Garment JSC',
+    countryCode: 'VN',
+    category: 'MANUFACTURING',
+    parent: 'vistula',
+    contactEmail: 'contact@hanoi-garment.example',
+  },
+  {
+    ref: 'binhduong',
+    externalId: 'SUP-2010',
+    name: 'Binh Duong Textile Co Ltd',
+    countryCode: 'VN',
+    category: 'MANUFACTURING',
+    parent: 'vistula',
+    contactEmail: 'info@binhduong-textile.example',
+  },
+  {
+    ref: 'tiruppur',
+    externalId: 'SUP-2011',
+    name: 'Tiruppur Knits Pvt Ltd',
+    countryCode: 'IN',
+    category: 'MANUFACTURING',
+    parent: 'meridian',
+    contactEmail: 'exports@tiruppur-knits.example',
+  },
+  {
+    ref: 'lahore',
+    externalId: 'SUP-2012',
+    name: 'Lahore Weaving Mills Pvt Ltd',
+    countryCode: 'PK',
+    category: 'MANUFACTURING',
+    parent: 'meridian',
+    contactEmail: 'info@lahore-weaving.example',
+  },
+  {
+    ref: 'phnompenh',
+    externalId: 'SUP-2013',
+    name: 'Phnom Penh Sewing Co Ltd',
+    countryCode: 'KH',
+    category: 'MANUFACTURING',
+    parent: 'rossi',
+    contactEmail: 'admin@pp-sewing.example',
+  },
+  {
+    ref: 'casablanca',
+    externalId: 'SUP-2014',
+    name: 'Casablanca Confection SARL',
+    countryCode: 'MA',
+    category: 'MANUFACTURING',
+    parent: 'brenner',
+    contactEmail: 'contact@casa-confection.example',
+  },
+
+  // ---- Tier 3: raw material sources ---------------------------------------
+  {
+    ref: 'cukurova',
+    externalId: 'SUP-3001',
+    name: 'Cukurova Cotton Ginners A.S.',
+    countryCode: 'TR',
+    category: 'RAW_MATERIAL',
+    parent: 'dokuma',
+    contactEmail: 'satis@cukurova-cotton.example',
+  },
+  {
+    ref: 'aegean',
+    externalId: 'SUP-3002',
+    name: 'Aegean Organic Fibres Ltd',
+    countryCode: 'TR',
+    category: 'RAW_MATERIAL',
+    parent: 'ege',
+    contactEmail: 'info@aegean-fibres.example',
+  },
+  {
+    ref: 'toscana',
+    externalId: 'SUP-3003',
+    name: 'Toscana Lana S.r.l.',
+    countryCode: 'IT',
+    category: 'RAW_MATERIAL',
+    parent: 'lombardia',
+    contactEmail: 'info@toscana-lana.example',
+  },
+  {
+    ref: 'shandong',
+    externalId: 'SUP-3004',
+    name: 'Shandong Fibre Group Co Ltd',
+    countryCode: 'CN',
+    category: 'RAW_MATERIAL',
+    parent: 'yifeng',
+    contactEmail: 'trade@shandong-fibre.example',
+  },
+  {
+    ref: 'jiangsu',
+    externalId: 'SUP-3005',
+    name: 'Jiangsu Viscose Materials Co Ltd',
+    countryCode: 'CN',
+    category: 'RAW_MATERIAL',
+    parent: 'haitai',
+    contactEmail: 'info@jiangsu-viscose.example',
+  },
+  {
+    ref: 'rajshahi',
+    externalId: 'SUP-3006',
+    name: 'Rajshahi Cotton Traders Ltd',
+    countryCode: 'BD',
+    category: 'RAW_MATERIAL',
+    parent: 'dhaka',
+    contactEmail: 'trade@rajshahi-cotton.example',
+  },
+  {
+    ref: 'khulna',
+    externalId: 'SUP-3007',
+    name: 'Khulna Jute & Fibre Ltd',
+    countryCode: 'BD',
+    category: 'RAW_MATERIAL',
+    parent: 'chattogram',
+    contactEmail: 'export@khulna-jute.example',
+  },
+  {
+    ref: 'mekong',
+    externalId: 'SUP-3008',
+    name: 'Mekong Cotton Supply JSC',
+    countryCode: 'VN',
+    category: 'RAW_MATERIAL',
+    parent: 'hanoi',
+    contactEmail: 'info@mekong-cotton.example',
+  },
+  {
+    ref: 'gujarat',
+    externalId: 'SUP-3009',
+    name: 'Gujarat Cotton Corporation Pvt Ltd',
+    countryCode: 'IN',
+    category: 'RAW_MATERIAL',
+    parent: 'tiruppur',
+    contactEmail: 'sales@gujarat-cotton.example',
+  },
+  {
+    ref: 'punjab',
+    externalId: 'SUP-3010',
+    name: 'Punjab Fibre Traders Pvt Ltd',
+    countryCode: 'PK',
+    category: 'RAW_MATERIAL',
+    parent: 'lahore',
+    contactEmail: 'info@punjab-fibre.example',
+  },
+  {
+    ref: 'addis',
+    externalId: 'SUP-3011',
+    name: 'Addis Fibre Exporters PLC',
+    countryCode: 'ET',
+    category: 'RAW_MATERIAL',
+    parent: 'phnompenh',
+    contactEmail: 'export@addis-fibre.example',
+  },
+  {
+    ref: 'sousse',
+    externalId: 'SUP-3012',
+    name: 'Sousse Textile Fibres SARL',
+    countryCode: 'TN',
+    category: 'RAW_MATERIAL',
+    parent: 'casablanca',
+    contactEmail: 'contact@sousse-fibres.example',
+  },
+];
+
+/** Plausible certification bodies, so the demo does not read as lorem ipsum. */
+export const ISSUERS: Readonly<Record<string, readonly string[]>> = {
+  ISO_14001: ['TUV SUD', 'Bureau Veritas', 'SGS', 'DNV'],
+  SA8000: ['Bureau Veritas', 'TUV Rheinland', 'RINA'],
+  OEKO_TEX: ['Hohenstein', 'TESTEX', 'OEKO-TEX Association'],
+  EUDR: ['Preferred by Nature', 'Control Union'],
+  CBAM: ['Verifavia', 'DNV'],
+  CSRD: ['Self-declaration'],
+  LKSG: ['Self-declaration'],
+};
