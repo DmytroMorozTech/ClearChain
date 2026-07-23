@@ -1,0 +1,16 @@
+{
+  "source": "mock-erp-v1",
+  "exportedAt": "2026-07-23T04:00:00.000Z",
+  "note": "Failure fixture. The supplier name carries a NUL character: it passes shape validation but PostgreSQL refuses to store it in a text column. Dirty data from an upstream system is how integrations actually fail, so the failure path is exercised with a real database error rather than a mocked one.",
+  "records": [
+    {
+      "externalId": "SUP-8001",
+      "name": "Nul\u0000Byte Trading Ltd",
+      "countryCode": "DE",
+      "category": "LOGISTICS",
+      "parentExternalId": null,
+      "contactEmail": "info@nul-byte.example",
+      "active": true
+    }
+  ]
+}

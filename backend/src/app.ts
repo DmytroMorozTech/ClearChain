@@ -9,6 +9,7 @@ import { errorHandler, notFoundHandler } from './http/middleware/errorHandler.ts
 import { readonlyGuard } from './http/middleware/readonly.ts';
 import { aggregatesRouter } from './http/routes/aggregates.ts';
 import { certificatesRouter } from './http/routes/certificates.ts';
+import { erpRouter } from './http/routes/erp.ts';
 import { healthRouter } from './http/routes/health.ts';
 import { suppliersRouter } from './http/routes/suppliers.ts';
 
@@ -39,10 +40,19 @@ export function createApp(): Express {
   );
 
   app.use('/api', readonlyGuard);
+  // The first two share a mount point rather than conflicting: app.use adds to a
+  // middleware stack, so Express tries each router in turn and the one whose internal
+  // path matches handles the request. Their paths are disjoint — /health against
+  // /dashboard, /chain and /reference/* — and none of those share a segment worth
+  // giving its own prefix. Health stays separate because it is an infrastructure probe,
+  // not domain data.
   app.use('/api', healthRouter);
   app.use('/api', aggregatesRouter);
+
+  // These two do share a segment across every one of their routes, so they get one.
   app.use('/api/suppliers', suppliersRouter);
   app.use('/api/certificates', certificatesRouter);
+  app.use('/api/erp', erpRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

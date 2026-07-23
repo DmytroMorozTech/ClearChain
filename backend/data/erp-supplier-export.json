@@ -1,0 +1,313 @@
+{
+  "source": "mock-erp-v1",
+  "exportedAt": "2026-07-23T04:00:00.000Z",
+  "note": "Simulated supplier master-data export. Shaped so one sync exercises create, update, no-op and reject in a single run.",
+  "records": [
+    {
+      "externalId": "SUP-3013",
+      "name": "Konya Fibre Trading Ltd",
+      "countryCode": "TR",
+      "category": "RAW_MATERIAL",
+      "parentExternalId": "SUP-2015",
+      "contactEmail": "trade@konya-fibre.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1001",
+      "name": "Hansen Textilwerk GmbH",
+      "countryCode": "DE",
+      "category": "MANUFACTURING",
+      "parentExternalId": null,
+      "contactEmail": "supplier.compliance@hansen-textilwerk.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1002",
+      "name": "Filatura Rossi S.p.A.",
+      "countryCode": "IT",
+      "category": "MANUFACTURING",
+      "parentExternalId": null,
+      "contactEmail": "qualita@filatura-rossi.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1003",
+      "name": "Porto Malhas Lda",
+      "countryCode": "PT",
+      "category": "MANUFACTURING",
+      "parentExternalId": null,
+      "contactEmail": "geral@porto-malhas.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1004",
+      "name": "Anadolu Konfeksiyon A.S.",
+      "countryCode": "TR",
+      "category": "MANUFACTURING",
+      "parentExternalId": null,
+      "contactEmail": "uyum@anadolu-konfeksiyon.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1005",
+      "name": "Vistula Apparel Sp. z o.o.",
+      "countryCode": "PL",
+      "category": "MANUFACTURING",
+      "parentExternalId": null,
+      "contactEmail": "biuro@vistula-apparel.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1006",
+      "name": "Brenner Logistik GmbH",
+      "countryCode": "DE",
+      "category": "LOGISTICS",
+      "parentExternalId": null,
+      "contactEmail": "disposition@brenner-logistik.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1007",
+      "name": "Nordfracht Spedition GmbH",
+      "countryCode": "DE",
+      "category": "LOGISTICS",
+      "parentExternalId": null,
+      "contactEmail": "kontakt@nordfracht.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1008",
+      "name": "Meridian Sourcing Ltd",
+      "countryCode": "GB",
+      "category": "LOGISTICS",
+      "parentExternalId": null,
+      "contactEmail": "ops@meridian-sourcing.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2001",
+      "name": "Dokuma Tekstil Sanayi ve Ticaret A.S.",
+      "countryCode": "TR",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1004",
+      "contactEmail": "info@dokuma-tekstil.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2002",
+      "name": "Ege Boyahane Ltd Sti",
+      "countryCode": "TR",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1004",
+      "contactEmail": "kalite@ege-boyahane.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2003",
+      "name": "Lombardia Tintoria S.r.l.",
+      "countryCode": "IT",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1002",
+      "contactEmail": "info@lombardia-tintoria.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2004",
+      "name": "Braga Fiacao Lda",
+      "countryCode": "PT",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1003",
+      "contactEmail": "producao@braga-fiacao.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-9001",
+      "name": "Ghost Trading Ltd",
+      "countryCode": "XX",
+      "category": "MANUFACTURING",
+      "parentExternalId": null,
+      "contactEmail": "nobody@ghost-trading.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-1009",
+      "name": "Alpenstoff Handels GmbH",
+      "countryCode": "DE",
+      "category": "LOGISTICS",
+      "parentExternalId": null,
+      "contactEmail": "kontakt@alpenstoff.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2005",
+      "name": "Guangzhou Yifeng Garment Co Ltd",
+      "countryCode": "CN",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1001",
+      "contactEmail": "export@yifeng-garment.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2006",
+      "name": "Ningbo Haitai Knitwear Co Ltd",
+      "countryCode": "CN",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1001",
+      "contactEmail": "sales@haitai-knitwear.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2007",
+      "name": "Dhaka Fashion Works Ltd",
+      "countryCode": "BD",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1001",
+      "contactEmail": "compliance@dhaka-fashion.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2008",
+      "name": "Chattogram Apparel Mills Ltd",
+      "countryCode": "BD",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1004",
+      "contactEmail": "audit@chattogram-apparel.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2009",
+      "name": "Hanoi Garment JSC",
+      "countryCode": "VN",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1005",
+      "contactEmail": "contact@hanoi-garment.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2010",
+      "name": "Binh Duong Textile Co Ltd",
+      "countryCode": "VN",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1005",
+      "contactEmail": "info@binhduong-textile.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2011",
+      "name": "Tiruppur Knits Pvt Ltd",
+      "countryCode": "IN",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1008",
+      "contactEmail": "exports@tiruppur-knits.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2012",
+      "name": "Lahore Weaving Mills Pvt Ltd",
+      "countryCode": "PK",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1008",
+      "contactEmail": "info@lahore-weaving.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2013",
+      "name": "Phnom Penh Sewing Co Ltd",
+      "countryCode": "VN",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1002",
+      "contactEmail": "admin@pp-sewing.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2014",
+      "name": "Casablanca Confection SARL",
+      "countryCode": "MA",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1006",
+      "contactEmail": "contact@casa-confection.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-3001",
+      "name": "Cukurova Cotton Ginners A.S.",
+      "countryCode": "TR",
+      "category": "RAW_MATERIAL",
+      "parentExternalId": "SUP-2001",
+      "contactEmail": "satis@cukurova-cotton.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-3003",
+      "name": "Toscana Lana Group S.r.l.",
+      "countryCode": "IT",
+      "category": "RAW_MATERIAL",
+      "parentExternalId": "SUP-2003",
+      "contactEmail": "export@toscana-lana.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-3004",
+      "name": "Shandong Fibre Group Co Ltd",
+      "countryCode": "CN",
+      "category": "RAW_MATERIAL",
+      "parentExternalId": "SUP-2005",
+      "contactEmail": "trade@shandong-fibre.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-3006",
+      "name": "Rajshahi Cotton Traders Ltd",
+      "countryCode": "BD",
+      "category": "RAW_MATERIAL",
+      "parentExternalId": "SUP-2007",
+      "contactEmail": "trade@rajshahi-cotton.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-3009",
+      "name": "Gujarat Cotton Corporation Pvt Ltd",
+      "countryCode": "IN",
+      "category": "RAW_MATERIAL",
+      "parentExternalId": "SUP-2011",
+      "contactEmail": "sales@gujarat-cotton.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-3010",
+      "name": "Punjab Fibre Traders Pvt Ltd",
+      "countryCode": "PK",
+      "category": "RAW_MATERIAL",
+      "parentExternalId": "SUP-2012",
+      "contactEmail": "info@punjab-fibre.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-9002",
+      "name": "Orphan Mills Ltd",
+      "countryCode": "IN",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-0000",
+      "contactEmail": "info@orphan-mills.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-3014",
+      "name": "Bursa Yarn Supply Ltd",
+      "countryCode": "TR",
+      "category": "RAW_MATERIAL",
+      "parentExternalId": "SUP-2015",
+      "contactEmail": "info@bursa-yarn.example",
+      "active": true
+    },
+    {
+      "externalId": "SUP-2015",
+      "name": "Izmir Ipek Tekstil A.S.",
+      "countryCode": "TR",
+      "category": "MANUFACTURING",
+      "parentExternalId": "SUP-1004",
+      "contactEmail": "ihracat@izmir-ipek.example",
+      "active": true
+    }
+  ]
+}

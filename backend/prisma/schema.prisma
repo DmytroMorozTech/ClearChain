@@ -133,6 +133,9 @@ model ErpSyncLog {
   recordsUpdated   Int @default(0)
   recordsUnchanged Int @default(0)
   recordsRejected  Int @default(0)
+  /// Suppliers the app holds that the feed did not mention. Sync never deletes; this
+  /// records what it chose to leave alone (§12).
+  recordsNotInFeed Int @default(0)
 
   errors Json?
 
