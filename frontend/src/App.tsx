@@ -1,12 +1,32 @@
+import CircularProgress from '@mui/material/CircularProgress';
+import Stack from '@mui/material/Stack';
+import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router';
 
 import { AppLayout } from './components/AppLayout.tsx';
 import { CertificatesPage } from './pages/CertificatesPage.tsx';
-import { ChainPage } from './pages/ChainPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
 import { SupplierDetailPage } from './pages/SupplierDetailPage.tsx';
 import { SuppliersPage } from './pages/SuppliersPage.tsx';
+
+/**
+ * The chain map is the only screen that needs react-flow, and react-flow is the single
+ * heaviest dependency in the bundle. Splitting it here keeps that weight off the first
+ * paint of every other screen, which is where it would otherwise be paid.
+ */
+const ChainPage = lazy(async () => {
+  const module = await import('./pages/ChainPage.tsx');
+  return { default: module.ChainPage };
+});
+
+function RouteFallback() {
+  return (
+    <Stack sx={{ alignItems: 'center', py: 8 }}>
+      <CircularProgress size={26} />
+    </Stack>
+  );
+}
 
 export default function App() {
   return (
@@ -15,7 +35,14 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="suppliers" element={<SuppliersPage />} />
         <Route path="suppliers/:id" element={<SupplierDetailPage />} />
-        <Route path="chain" element={<ChainPage />} />
+        <Route
+          path="chain"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <ChainPage />
+            </Suspense>
+          }
+        />
         <Route path="certificates" element={<CertificatesPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

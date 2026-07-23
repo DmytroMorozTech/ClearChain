@@ -15,9 +15,9 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import { Download, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
-import { Link as RouterLink, useParams } from 'react-router';
+import { Link as RouterLink, useNavigate, useParams } from 'react-router';
 
 import { fileUrl } from '../api/client.ts';
 import { useDeleteCertificate, useSupplier } from '../api/queries.ts';
@@ -44,34 +44,61 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+/**
+ * Returns to wherever the reader actually came from, which the breadcrumb cannot do:
+ * this page is reached from the supplier list, from the chain map and from another
+ * supplier's upstream list, and the breadcrumb only ever describes the hierarchy.
+ *
+ * React Router stamps an index onto each history entry. An index of 0 means this entry
+ * opened the session — a pasted link or a fresh tab — so going back would leave the app
+ * entirely; that case falls back to the list instead.
+ */
+function useGoBack(fallback: string): () => void {
+  const navigate = useNavigate();
+  const historyIndex = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+
+  return () => {
+    void (historyIndex > 0 ? navigate(-1) : navigate(fallback));
+  };
+}
+
 export function SupplierDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { data, isPending, isError, error } = useSupplier(id);
   const deleteCertificate = useDeleteCertificate();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const goBack = useGoBack('/suppliers');
 
   if (isPending) return <Typography color="text.secondary">Loading…</Typography>;
   if (isError) return <Alert severity="error">{error.message}</Alert>;
 
   return (
     <Stack spacing={2.5}>
-      <Breadcrumbs>
-        <Link component={RouterLink} to="/suppliers" underline="hover" color="inherit">
-          Suppliers
-        </Link>
-        {data.ancestors.map((ancestor) => (
-          <Link
-            key={ancestor.id}
-            component={RouterLink}
-            to={`/suppliers/${ancestor.id}`}
-            underline="hover"
-            color="inherit"
-          >
-            {ancestor.name}
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Tooltip title="Back">
+          <IconButton onClick={goBack} size="small" aria-label="Go back">
+            <ArrowLeft size={18} />
+          </IconButton>
+        </Tooltip>
+
+        <Breadcrumbs>
+          <Link component={RouterLink} to="/suppliers" underline="hover" color="inherit">
+            Suppliers
           </Link>
-        ))}
-        <Typography color="text.primary">{data.name}</Typography>
-      </Breadcrumbs>
+          {data.ancestors.map((ancestor) => (
+            <Link
+              key={ancestor.id}
+              component={RouterLink}
+              to={`/suppliers/${ancestor.id}`}
+              underline="hover"
+              color="inherit"
+            >
+              {ancestor.name}
+            </Link>
+          ))}
+          <Typography color="text.primary">{data.name}</Typography>
+        </Breadcrumbs>
+      </Stack>
 
       <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Typography variant="h1">{data.name}</Typography>
