@@ -1,4 +1,6 @@
 # ClearChain
+<img width="1898" height="810" alt="image" src="https://github.com/user-attachments/assets/da9ca076-429c-4290-9659-798456d2a8d0" />
+
 
 A supply-chain compliance dashboard for a fictional apparel buyer, **Lindenwear GmbH**.
 It tracks suppliers across three tiers, the certificates they hold, and a transparent
