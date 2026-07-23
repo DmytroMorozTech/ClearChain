@@ -7,6 +7,7 @@ import { env } from './config/env.ts';
 import { AppError } from './http/errors.ts';
 import { errorHandler, notFoundHandler } from './http/middleware/errorHandler.ts';
 import { readonlyGuard } from './http/middleware/readonly.ts';
+import { aggregatesRouter } from './http/routes/aggregates.ts';
 import { certificatesRouter } from './http/routes/certificates.ts';
 import { healthRouter } from './http/routes/health.ts';
 import { suppliersRouter } from './http/routes/suppliers.ts';
@@ -39,6 +40,7 @@ export function createApp(): Express {
 
   app.use('/api', readonlyGuard);
   app.use('/api', healthRouter);
+  app.use('/api', aggregatesRouter);
   app.use('/api/suppliers', suppliersRouter);
   app.use('/api/certificates', certificatesRouter);
 
