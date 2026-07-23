@@ -5,11 +5,23 @@ import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { Suspense, lazy } from 'react';
+
 import { useDashboard } from '../api/queries.ts';
-import { DistributionChart, type DistributionDatum } from '../components/DistributionChart.tsx';
+import type { DistributionDatum } from '../components/DistributionChart.tsx';
 import { StatTile } from '../components/StatTile.tsx';
 import { SyncPanel } from '../components/SyncPanel.tsx';
 import { RISK_COLORS, RISK_LABELS } from '../theme.ts';
+
+/**
+ * Recharts is the largest thing on this route and the tiles do not need it. Splitting
+ * it lets the headline figures paint immediately while the charts arrive behind them;
+ * the type import above is erased at build time and pulls nothing in.
+ */
+const DistributionChart = lazy(async () => {
+  const module = await import('../components/DistributionChart.tsx');
+  return { default: module.DistributionChart };
+});
 
 const INDIGO = '#4F46E5';
 
@@ -99,23 +111,27 @@ export function DashboardPage() {
         }}
       >
         <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <DistributionChart
-            title="Risk distribution"
-            data={riskData}
-            total={data.suppliers.total}
-            summary={`${String(data.suppliers.total)} suppliers by risk band: ${riskSummary}.`}
-          />
+          <Suspense fallback={<Skeleton variant="rounded" height={240} />}>
+            <DistributionChart
+              title="Risk distribution"
+              data={riskData}
+              total={data.suppliers.total}
+              summary={`${String(data.suppliers.total)} suppliers by risk band: ${riskSummary}.`}
+            />
+          </Suspense>
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <DistributionChart
-            title="Suppliers by tier"
-            data={tierData}
-            total={data.suppliers.total}
-            summary={`Tier 1 is a direct supplier, tier 3 a raw-material source. ${tierData
-              .map((datum) => `${datum.label.toLowerCase()} ${String(datum.count)}`)
-              .join(', ')}.`}
-          />
+          <Suspense fallback={<Skeleton variant="rounded" height={240} />}>
+            <DistributionChart
+              title="Suppliers by tier"
+              data={tierData}
+              total={data.suppliers.total}
+              summary={`Tier 1 is a direct supplier, tier 3 a raw-material source. ${tierData
+                .map((datum) => `${datum.label.toLowerCase()} ${String(datum.count)}`)
+                .join(', ')}.`}
+            />
+          </Suspense>
         </Paper>
       </Box>
 

@@ -10,7 +10,11 @@ coverage
 .env.*
 !.env.example
 uploads
-frontend
+# The backend image needs frontend/package.json for `npm ci` to resolve the workspace
+# lockfile, but nothing else the frontend owns.
+frontend/src
+frontend/public
+frontend/index.html
 *.md
 .vscode
 .idea
