@@ -10,10 +10,15 @@ requirements.md
 # Local editor/tooling state — machine-specific, not part of the project.
 .claude/
 
-# Env files — .env.example is committed, real .env files never are
+# TLS material for the production stack — never committed.
+docker/nginx/certs/
+
+# Env files — only the committed examples (.env.example, .env.prod.example) are kept;
+# every real env file, whatever it is named, is ignored.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.prod.example
 
 # Local file-storage driver target. The directory is kept, its contents are not.
 # The ** prefix matters: UPLOAD_DIR is relative to the backend's working directory, so

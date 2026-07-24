@@ -20,6 +20,12 @@ COPY backend ./backend
 # env() helper, which throws while the config file is loading.
 RUN npm run build -w @clearchain/backend
 
+# The seed runs from this stage and writes certificate PDFs into the uploads volume.
+# Making the mount point node-owned here means the volume is initialised node-owned on
+# first mount, so the runtime API (which runs as node) can write into it too. The seed
+# service runs as the same uid; see docker-compose.prod.yml.
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
+
 # ── runtime ──────────────────────────────────────────────────────────────────
 FROM node:24-alpine AS runtime
 WORKDIR /app
@@ -80,6 +86,11 @@ COPY --from=builder /app/backend/data ./backend/data
 # start where a slow or failed migration would take the service down with it. Copying
 # them here would also put TypeScript source files back into an image whose whole point
 # is to contain none.
+
+# Created and owned by node before dropping privileges, so a freshly-created uploads
+# volume mounts node-writable. Without this the mount point is root-owned and the
+# non-root process gets EACCES on the first certificate upload.
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
 
 EXPOSE 3001
 USER node

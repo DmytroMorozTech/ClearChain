@@ -23,6 +23,8 @@ export function createApp(): Express {
   const app = express();
 
   app.disable('x-powered-by');
+  // Exactly as many hops as really exist — see TRUST_PROXY_HOPS.
+  app.set('trust proxy', env.TRUST_PROXY_HOPS);
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN }));
   app.use(express.json({ limit: '1mb' }));

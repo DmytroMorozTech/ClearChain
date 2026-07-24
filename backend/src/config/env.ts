@@ -44,6 +44,20 @@ const envSchema = z.object({
     .transform((value) => value === 'true'),
 
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+
+  /**
+   * How many reverse proxies sit in front of the app.
+   *
+   * Rate limiting is per client address, and behind a proxy `req.ip` is the proxy's
+   * address unless Express is told to read X-Forwarded-For — at which point every
+   * caller shares one bucket and the limit protects nothing. The count must be exact:
+   * trusting more hops than exist lets a caller forge the header and appear as a
+   * different client on every request.
+   *
+   * 1 covers both real setups here — Vite's dev proxy and nginx in production. Set 0
+   * when the container is exposed directly.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

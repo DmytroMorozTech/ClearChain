@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A second push while the first run is still going makes the first one irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, lint and test
+    runs-on: ubuntu-latest
+
+    services:
+      # The integration suite talks to a real database rather than a mock, so CI has to
+      # provide one. The healthcheck matters for the same reason it does in
+      # docker-compose: the container reports started long before Postgres accepts
+      # connections, and the first migration would race it.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: clearchain
+          POSTGRES_PASSWORD: clearchain
+          POSTGRES_DB: clearchain_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clearchain -d clearchain_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # tests/setup.ts points the application at this and generates its own auth
+      # credentials, so nothing secret is needed to run the suite.
+      TEST_DATABASE_URL: postgresql://clearchain:clearchain@localhost:5432/clearchain_test?schema=public
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The generated client is build output, not a package: npm ci installs
+      # @prisma/client but not what `prisma generate` writes into it.
+      - name: Generate Prisma client
+        run: npm run db:generate -w @clearchain/backend
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formatting
+        run: npm run format:check
+
+      # Runs on a machine with no database, which is the point of keeping the domain
+      # layer free of I/O.
+      - name: Unit tests
+        run: npm test
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Frontend build
+        run: npm run build -w @clearchain/frontend
+
+  image:
+    name: Production image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: false
+          load: true
+          tags: clearchain-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The image is supposed to carry compiled JavaScript and nothing else. Both of
+      # these have been wrong before -- the seed's .ts files arrived with the migrations
+      # folder, and the Prisma CLI arrived as an optional peer dependency, bringing the
+      # TypeScript compiler with it.
+      - name: Assert no TypeScript reaches the runtime image
+        run: |
+          sources=$(docker run --rm --entrypoint sh clearchain-api:ci -c \
+            "find /app -name '*.ts' -not -path '*/node_modules/*' | wc -l")
+          if [ "$sources" != "0" ]; then
+            echo "::error::$sources TypeScript source files found in the runtime image"
+            docker run --rm --entrypoint sh clearchain-api:ci -c \
+              "find /app -name '*.ts' -not -path '*/node_modules/*'"
+            exit 1
+          fi
+
+          for package in typescript prisma; do
+            if docker run --rm --entrypoint sh clearchain-api:ci -c \
+              "test -d /app/node_modules/$package"; then
+              echo "::error::$package is present in the runtime image"
+              exit 1
+            fi
+          done
+
+          echo "Runtime image carries compiled JavaScript only."

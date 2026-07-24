@@ -276,16 +276,55 @@ application start, where a slow or failed migration would take the service down 
 
 ### Deployment
 
-Not provisioned, and deliberately so. The S3 driver is written and type-checked so the
-abstraction is a real seam rather than a comment, but no AWS resources exist for this
-demo. The intended shape is the backend image on ECS Fargate or Elastic Beanstalk, the
-frontend build on S3 behind CloudFront, and RDS PostgreSQL.
+The whole application runs from one `docker-compose.prod.yml`: PostgreSQL, the API
+image, and an nginx image that serves the built frontend and proxies `/api` to the API
+on the same origin. Same origin is the point — it keeps CORS out of the picture and lets
+the session cookie behave as an ordinary first-party cookie.
 
-A deployment must set its own `AUTH_SECRET`. The value in `.env.example` is published in
-this repository, and anyone holding it can mint a valid session cookie.
+The compose file was verified end to end on a local machine before any server existed:
+build, migrate, seed, sign in, read every screen, upload a certificate and download it
+back, all through nginx. Two things it caught that only appear in the container — the
+frontend build needs `frontend/src`, which the shared `.dockerignore` had been excluding
+for the backend image; and the uploads volume must be created node-owned in both the
+runtime and seed stages, or the non-root process gets `EACCES` on the first upload.
 
-`DEMO_READONLY=true` remains available as a second line — every mutating route returns
-403 — for a deployment that would rather show the data than accept uploads at all.
+Migrations and the seed run as one-shot services that target the builder stage, because
+the runtime image carries no Prisma CLI. They never run on application start, where a
+slow or failed migration would take the service down with it.
+
+```bash
+# On the server, once Docker is installed and the repo is cloned:
+cp .env.prod.example .env          # then fill it in — see below
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d db
+docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
+docker compose -f docker-compose.prod.yml --profile tools run --rm seed
+docker compose -f docker-compose.prod.yml up -d api web
+```
+
+Filling in `.env`:
+
+- `AUTH_SECRET` **must not** be the value from `backend/.env.example`. That one is
+  published here, and anyone holding it can mint a valid session cookie. Generate a real
+  pair with `npm run auth:hash -w @clearchain/backend -- "<the demo password>"`.
+- `POSTGRES_PASSWORD` — `openssl rand -base64 24`, not something invented.
+- `PUBLIC_ORIGIN` must match exactly how the site is reached, `https://` included, or the
+  browser rejects the CORS responses.
+
+**TLS.** The session cookie is `Secure`, so the site must be served over HTTPS or sign-in
+silently fails — the cookie is set but never sent back. The simplest path with a domain
+on Cloudflare is a Cloudflare origin certificate (valid 15 years, no renewal) with the
+zone in Full (strict) mode; point an nginx `443` server block at the mounted cert. A
+plain Let's Encrypt certificate on the host works equally well.
+
+`DEMO_READONLY=true` remains available — every mutating route returns 403 — for a
+deployment that would rather show the data than accept uploads. With the sign-in gate in
+place it can stay `false`, which keeps certificate upload and ERP sync working.
+
+A single small VM (2 vCPU, 2 GB) runs all three containers comfortably; the storage
+driver stays `local` on a Docker volume, so no S3 bucket is involved. The `s3` driver is
+written and type-checked as a real seam, but has never been exercised against AWS — the
+honest state to know before relying on it.
 
 ---
 

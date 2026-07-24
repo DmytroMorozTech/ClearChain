@@ -10,11 +10,9 @@ coverage
 .env.*
 !.env.example
 uploads
-# The backend image needs frontend/package.json for `npm ci` to resolve the workspace
-# lockfile, but nothing else the frontend owns.
-frontend/src
-frontend/public
-frontend/index.html
+# frontend/src is deliberately NOT excluded: this .dockerignore is shared by both
+# images, and the frontend build needs it. The backend image simply never COPYs it,
+# so it costs the backend nothing but a slightly larger build context.
 *.md
 .vscode
 .idea
