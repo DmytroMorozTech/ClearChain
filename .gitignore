@@ -4,8 +4,10 @@ build/
 coverage/
 .vite/
 
-# Working business requirements document — kept locally, never committed.
-requirements.md
+# Local-only working files — the private spec, session-handoff notes, scratch. Anything
+# in here stays on disk and is never committed; drop new local files in without touching
+# this file again.
+internals/
 
 # Local editor/tooling state — machine-specific, not part of the project.
 .claude/
