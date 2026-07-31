@@ -41,7 +41,6 @@ export function SyncPanel({ lastSync }: { lastSync: SyncLog | null }) {
     <Paper variant="outlined" sx={{ p: 2.5 }}>
       <Stack
         direction="row"
-        spacing={2}
         sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}
       >
         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>

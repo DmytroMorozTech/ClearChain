@@ -18,7 +18,10 @@ export function ChainPage() {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
+      <Stack
+        direction="row"
+        sx={{ alignItems: 'baseline', flexWrap: 'wrap', columnGap: 2, rowGap: 1 }}
+      >
         <Typography variant="h1">Supply chain</Typography>
         {data && (
           <Typography color="text.secondary">
@@ -29,7 +32,7 @@ export function ChainPage() {
 
       {/* A legend is present because the map encodes risk; the nodes name their band
           as well, so identity never rests on colour alone. */}
-      <Stack direction="row" spacing={2.5} sx={{ flexWrap: 'wrap', gap: 1 }}>
+      <Stack direction="row" sx={{ flexWrap: 'wrap', columnGap: 2.5, rowGap: 1 }}>
         {LEGEND.map((level) => (
           <Stack key={level} direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
             <Box

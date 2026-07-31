@@ -65,7 +65,10 @@ export function DashboardPage() {
     // Refetching holds the previous render at reduced opacity rather than flashing a
     // skeleton, so nothing jumps while numbers refresh.
     <Stack spacing={2.5} sx={{ opacity: isFetching ? 0.65 : 1, transition: 'opacity 120ms' }}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
+      <Stack
+        direction="row"
+        sx={{ alignItems: 'baseline', flexWrap: 'wrap', columnGap: 2, rowGap: 1 }}
+      >
         <Typography variant="h1">Dashboard</Typography>
         <Typography color="text.secondary">{data.company.name}</Typography>
       </Stack>

@@ -123,16 +123,18 @@ export function SupplierDetailPage() {
         </Breadcrumbs>
       </Stack>
 
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+      <Stack spacing={1.5} sx={{ alignItems: 'flex-start' }}>
         <Typography variant="h1">{data.name}</Typography>
-        <RiskChip level={data.riskLevel} score={data.riskScore} size="medium" />
-        <Chip
-          size="medium"
-          variant="outlined"
-          color={data.isCompliant ? 'success' : 'default'}
-          label={data.isCompliant ? 'Compliant' : 'Not compliant'}
-        />
-        {!data.isActive && <Chip size="medium" color="warning" label="Inactive" />}
+        <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+          <RiskChip level={data.riskLevel} score={data.riskScore} size="medium" />
+          <Chip
+            size="medium"
+            variant="outlined"
+            color={data.isCompliant ? 'success' : 'default'}
+            label={data.isCompliant ? 'Compliant' : 'Not compliant'}
+          />
+          {!data.isActive && <Chip size="medium" color="warning" label="Inactive" />}
+        </Stack>
       </Stack>
 
       <Box
@@ -197,7 +199,7 @@ export function SupplierDetailPage() {
             </Typography>
 
             {/* Requirements first: what is missing matters more than what is filed. */}
-            <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Stack direction="row" sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
               {data.requirements.map((requirement) => (
                 <Chip
                   key={requirement.type}
