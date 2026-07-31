@@ -6,26 +6,8 @@ import { useMemo } from 'react';
 import { Link as RouterLink } from 'react-router';
 
 import type { Chain, ChainNode } from '../api/schemas.ts';
+import { type ChainTree, buildChainTree } from '../chain.ts';
 import { RiskChip } from './RiskChip.tsx';
-
-interface Tree {
-  byId: Map<string, ChainNode>;
-  childrenOf: Map<string, string[]>;
-  rootId: string | undefined;
-}
-
-function buildTree(chain: Chain): Tree {
-  const byId = new Map(chain.nodes.map((node) => [node.id, node]));
-  const childrenOf = new Map<string, string[]>();
-
-  for (const edge of chain.edges) {
-    const siblings = childrenOf.get(edge.source);
-    if (siblings === undefined) childrenOf.set(edge.source, [edge.target]);
-    else siblings.push(edge.target);
-  }
-
-  return { byId, childrenOf, rootId: chain.nodes.find((node) => node.type === 'company')?.id };
-}
 
 function Row({ node }: { node: ChainNode }) {
   if (node.type === 'company') {
@@ -66,7 +48,7 @@ function Row({ node }: { node: ChainNode }) {
   );
 }
 
-function Branch({ id, tree }: { id: string; tree: Tree }) {
+function Branch({ id, tree }: { id: string; tree: ChainTree }) {
   const node = tree.byId.get(id);
   if (node === undefined) return null;
 
@@ -91,7 +73,7 @@ function Branch({ id, tree }: { id: string; tree: Tree }) {
  * actually show. Forty nodes at 210px each is a canvas to be panned around, not read.
  */
 export function ChainList({ chain }: { chain: Chain }) {
-  const tree = useMemo(() => buildTree(chain), [chain]);
+  const tree = useMemo(() => buildChainTree(chain), [chain]);
 
   if (tree.rootId === undefined) return null;
 

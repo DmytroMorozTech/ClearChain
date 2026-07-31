@@ -7,9 +7,10 @@ import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { List, Network } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useChain } from '../api/queries.ts';
+import { patchChainView, readChainView } from '../chainView.ts';
 import { ChainFlow } from '../components/ChainFlow.tsx';
 import { ChainList } from '../components/ChainList.tsx';
 import { ViewToggle } from '../components/ViewToggle.tsx';
@@ -29,11 +30,17 @@ export function ChainPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down(MOBILE_BREAKPOINT), { noSsr: true });
 
-  // Seeded from the breakpoint, then left to the reader. Same disclosure as the charts
-  // on the dashboard: the picture is the default where there is room for it, and the
-  // text is always one press away.
-  const [view, setView] = useState<ChainView>(isMobile ? 'list' : 'map');
+  // Restored if the reader has been here before in this tab; otherwise seeded from the
+  // breakpoint. Same disclosure as the charts on the dashboard: the picture is the
+  // default where there is room for it, and the text is always one press away.
+  const restored = useMemo(() => readChainView(), []);
+  const [view, setView] = useState<ChainView>(restored?.view ?? (isMobile ? 'list' : 'map'));
   const asList = view === 'list';
+
+  const changeView = useCallback((next: ChainView) => {
+    setView(next);
+    patchChainView({ view: next });
+  }, []);
 
   if (isError) return <Alert severity="error">{error.message}</Alert>;
 
@@ -50,7 +57,7 @@ export function ChainPage() {
           </Typography>
         )}
         <Box sx={{ flexGrow: 1 }} />
-        <ViewToggle value={view} onChange={setView} options={VIEW_OPTIONS} label="Chain view" />
+        <ViewToggle value={view} onChange={changeView} options={VIEW_OPTIONS} label="Chain view" />
       </Stack>
 
       {/* A legend is present because the map encodes risk; the nodes name their band

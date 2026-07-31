@@ -5,11 +5,12 @@ import type { LucideIcon } from 'lucide-react';
 interface ViewToggleOption<T extends string> {
   value: T;
   label: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
 }
 
 interface ViewToggleProps<T extends string> {
-  value: T;
+  /** `null` selects nothing — for a control whose options do not cover every state. */
+  value: T | null;
   onChange: (value: T) => void;
   options: readonly ViewToggleOption<T>[];
   /** Names the group for screen readers — "Chain view", "Chart view". */
@@ -67,7 +68,7 @@ export function ViewToggle<T extends string>({
     >
       {options.map(({ value: optionValue, label: optionLabel, icon: Icon }) => (
         <ToggleButton key={optionValue} value={optionValue}>
-          <Icon size={15} aria-hidden />
+          {Icon && <Icon size={15} aria-hidden />}
           {optionLabel}
         </ToggleButton>
       ))}
