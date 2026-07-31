@@ -35,7 +35,7 @@ type FlowNodeData = ChainNode & Record<string, unknown>;
  * follows the order the API returned, which is itself ordered by tier then name — so
  * the same data always draws the same picture.
  */
-function layout(chain: Chain): { nodes: Node<FlowNodeData>[]; edges: Edge[] } {
+function layout(chain: Chain, nodeWidth: number): { nodes: Node<FlowNodeData>[]; edges: Edge[] } {
   const byTier = new Map<number, ChainNode[]>();
   for (const node of chain.nodes) {
     const row = byTier.get(node.tier);
@@ -44,21 +44,22 @@ function layout(chain: Chain): { nodes: Node<FlowNodeData>[]; edges: Edge[] } {
   }
 
   const widest = Math.max(...[...byTier.values()].map((row) => row.length), 1);
-  const canvasWidth = widest * (NODE_WIDTH + COLUMN_GAP);
+  const canvasWidth = widest * (nodeWidth + COLUMN_GAP);
 
   const nodes: Node<FlowNodeData>[] = [];
   for (const [tier, row] of [...byTier.entries()].sort((a, b) => a[0] - b[0])) {
     // Centre each row against the widest one, so the tree reads as a tree.
-    const rowWidth = row.length * (NODE_WIDTH + COLUMN_GAP);
+    const rowWidth = row.length * (nodeWidth + COLUMN_GAP);
     const offset = (canvasWidth - rowWidth) / 2;
 
     row.forEach((node, index) => {
       nodes.push({
         id: node.id,
         type: 'supply',
-        position: { x: offset + index * (NODE_WIDTH + COLUMN_GAP), y: tier * ROW_GAP },
+        position: { x: offset + index * (nodeWidth + COLUMN_GAP), y: tier * ROW_GAP },
         data: node as FlowNodeData,
         draggable: false,
+        style: { width: nodeWidth },
       });
     });
   }
@@ -81,7 +82,7 @@ function SupplyNode({ data }: NodeProps<Node<FlowNodeData>>) {
   return (
     <Box
       sx={{
-        width: NODE_WIDTH,
+        width: '100%',
         minHeight: NODE_HEIGHT,
         px: 1.5,
         py: 1.25,
@@ -139,9 +140,10 @@ function SupplyNode({ data }: NodeProps<Node<FlowNodeData>>) {
 
 const nodeTypes = { supply: SupplyNode };
 
-export function ChainFlow({ chain }: { chain: Chain }) {
+export function ChainFlow({ chain, compact = false }: { chain: Chain; compact?: boolean }) {
   const navigate = useNavigate();
-  const { nodes, edges } = useMemo(() => layout(chain), [chain]);
+  const nodeWidth = compact ? 150 : NODE_WIDTH;
+  const { nodes, edges } = useMemo(() => layout(chain, nodeWidth), [chain, nodeWidth]);
 
   return (
     <ReactFlow
@@ -149,8 +151,11 @@ export function ChainFlow({ chain }: { chain: Chain }) {
       edges={edges}
       nodeTypes={nodeTypes}
       fitView
+      fitViewOptions={{ padding: 0.15 }}
       minZoom={0.2}
       maxZoom={1.6}
+      // Lets a vertical swipe scroll the page instead of being swallowed by the canvas.
+      preventScrolling={false}
       proOptions={{ hideAttribution: false }}
       onNodeClick={(_event, node) => {
         if (node.data.type === 'supplier') void navigate(`/suppliers/${node.id}`);
@@ -158,14 +163,18 @@ export function ChainFlow({ chain }: { chain: Chain }) {
     >
       <Background gap={22} size={1} color="#e2e8f0" />
       <Controls showInteractive={false} />
-      <MiniMap
-        pannable
-        zoomable
-        nodeColor={(node) => {
-          const data = node.data as FlowNodeData;
-          return data.riskLevel ? RISK_COLORS[data.riskLevel] : '#4F46E5';
-        }}
-      />
+      {/* The minimap is ~200px wide — half a phone screen spent on an overview of an
+          overview. */}
+      {!compact && (
+        <MiniMap
+          pannable
+          zoomable
+          nodeColor={(node) => {
+            const data = node.data as FlowNodeData;
+            return data.riskLevel ? RISK_COLORS[data.riskLevel] : '#4F46E5';
+          }}
+        />
+      )}
     </ReactFlow>
   );
 }
