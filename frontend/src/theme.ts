@@ -63,6 +63,11 @@ export const theme = createTheme({
     h3: { fontSize: '1.05rem', fontWeight: 600 },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        html: { scrollbarGutter: 'stable' },
+      },
+    },
     MuiPaper: {
       styleOverrides: {
         root: { backgroundImage: 'none' },
