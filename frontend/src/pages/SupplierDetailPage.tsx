@@ -199,22 +199,40 @@ export function SupplierDetailPage() {
             </Typography>
 
             {/* Requirements first: what is missing matters more than what is filed. */}
-            <Stack direction="row" sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
+            {/* Equal tracks in a `max-content` container: `1fr` resolves every track to
+                the same size, and the container hugs the widest, so each badge ends up
+                as wide as the largest one. */}
+            <Box
+              sx={{
+                mt: 2,
+                display: 'grid',
+                gap: 1,
+                width: 'max-content',
+                maxWidth: '100%',
+                gridAutoFlow: { xs: 'row', sm: 'column' },
+                gridAutoColumns: { sm: '1fr' },
+              }}
+            >
               {data.requirements.map((requirement) => (
                 <Chip
                   key={requirement.type}
                   size="small"
                   variant="outlined"
                   label={
-                    <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      sx={{ alignItems: 'center', justifyContent: 'space-between' }}
+                    >
                       <span>{CERTIFICATE_LABELS[requirement.type]}</span>
-                      <CertificateStatusChip status={requirement.status} />
+                      <CertificateStatusChip status={requirement.status} iconOnly />
                     </Stack>
                   }
-                  sx={{ height: 'auto', py: 0.5, '& .MuiChip-label': { px: 1 } }}
+                  // The label has to grow for the badge to use the width it was given.
+                  sx={{ height: 'auto', py: 0.5, '& .MuiChip-label': { px: 1, flexGrow: 1 } }}
                 />
               ))}
-            </Stack>
+            </Box>
 
             <Divider sx={{ my: 2 }} />
 
