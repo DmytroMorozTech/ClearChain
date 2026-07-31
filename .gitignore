@@ -11,6 +11,7 @@ internals/
 
 # Local editor/tooling state — machine-specific, not part of the project.
 .claude/
+CLAUDE.md
 
 # TLS material for the production stack — never committed.
 docker/nginx/certs/
