@@ -127,12 +127,12 @@ export function SupplierDetailPage() {
         <Typography variant="h1">{data.name}</Typography>
         <RiskChip level={data.riskLevel} score={data.riskScore} size="medium" />
         <Chip
-          size="small"
+          size="medium"
           variant="outlined"
           color={data.isCompliant ? 'success' : 'default'}
           label={data.isCompliant ? 'Compliant' : 'Not compliant'}
         />
-        {!data.isActive && <Chip size="small" color="warning" label="Inactive" />}
+        {!data.isActive && <Chip size="medium" color="warning" label="Inactive" />}
       </Stack>
 
       <Box

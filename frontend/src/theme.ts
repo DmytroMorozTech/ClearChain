@@ -73,7 +73,12 @@ export const theme = createTheme({
       styleOverrides: { root: { textTransform: 'none', fontWeight: 600 } },
     },
     MuiChip: {
-      styleOverrides: { root: { fontWeight: 600 } },
+      styleOverrides: {
+        root: {
+          fontWeight: 600,
+          '&.MuiChip-sizeSmall': { paddingLeft: 8, paddingRight: 8 },
+        },
+      },
     },
     /**
      * iOS Safari zooms the viewport whenever a focused input renders below 16px, and it
