@@ -1,0 +1,13 @@
+# TLS overlay for production. Combine with the base file:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.tls.yml up -d web
+#
+# Kept separate so the base stack stays plain HTTP and can be verified locally without a
+# certificate. This overlay swaps in the :443 nginx config and expects a Cloudflare
+# Origin Certificate at docker/nginx/certs/origin.pem and origin.key.
+
+services:
+  web:
+    volumes:
+      - ./docker/nginx/app.ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro

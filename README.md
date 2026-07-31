@@ -332,6 +332,9 @@ driver stays `local` on a Docker volume, so no S3 bucket is involved. The `s3` d
 written and type-checked as a real seam, but has never been exercised against AWS — the
 honest state to know before relying on it.
 
+**[DEPLOY.md](DEPLOY.md)** is the step-by-step runbook: EC2, Cloudflare Origin
+certificate in Full (strict), and the exact commands to bring the stack up.
+
 ---
 
 ## Authentication
