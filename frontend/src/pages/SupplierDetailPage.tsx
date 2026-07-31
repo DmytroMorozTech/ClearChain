@@ -11,10 +11,13 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { ArrowLeft, Download, Plus, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router';
@@ -23,6 +26,7 @@ import { fileUrl } from '../api/client.ts';
 import { useDeleteCertificate, useSupplier } from '../api/queries.ts';
 import { CertificateStatusChip } from '../components/CertificateStatusChip.tsx';
 import { CertificateUploadDialog } from '../components/CertificateUploadDialog.tsx';
+import { RecordCard } from '../components/RecordCard.tsx';
 import { RiskBreakdown } from '../components/RiskBreakdown.tsx';
 import { RiskChip } from '../components/RiskChip.tsx';
 import {
@@ -32,14 +36,22 @@ import {
   formatDate,
   formatFileSize,
 } from '../format.ts';
+import { MOBILE_BREAKPOINT } from '../theme.ts';
 
-function Field({ label, value }: { label: string; value: ReactNode }) {
+/**
+ * `wide` gives a field the whole row on a phone. Only the contact address asks for it:
+ * an email has no break opportunity, so in a half-width column it either forces the
+ * column open or shatters across three lines.
+ */
+function Field({ label, value, wide }: { label: string; value: ReactNode; wide?: boolean }) {
   return (
-    <Box>
+    <Box sx={{ minWidth: 0, gridColumn: wide === true ? { xs: '1 / -1', sm: 'auto' } : undefined }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
         {label}
       </Typography>
-      <Typography sx={{ fontWeight: 500 }}>{value}</Typography>
+      {/* `anywhere` rather than `break-word`: the latter still refuses to split a single
+          long token, which is exactly what an email address is. */}
+      <Typography sx={{ fontWeight: 500, overflowWrap: 'anywhere' }}>{value}</Typography>
     </Box>
   );
 }
@@ -68,6 +80,8 @@ export function SupplierDetailPage() {
   const deleteCertificate = useDeleteCertificate();
   const [uploadOpen, setUploadOpen] = useState(false);
   const goBack = useGoBack('/suppliers');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down(MOBILE_BREAKPOINT), { noSsr: true });
 
   if (isPending) return <Typography color="text.secondary">Loading…</Typography>;
   if (isError) return <Alert severity="error">{error.message}</Alert>;
@@ -81,7 +95,16 @@ export function SupplierDetailPage() {
           </IconButton>
         </Tooltip>
 
-        <Breadcrumbs>
+        {/* A tier-3 supplier's ancestry is four links deep, which wraps to three lines on
+            a phone and pushes the heading off the first screen. Collapsed to
+            "Suppliers … this one" there — the middle of a trail is the least useful part
+            of it, and the ancestors are all reachable from the chain map anyway. */}
+        <Breadcrumbs
+          maxItems={isMobile ? 2 : 8}
+          itemsBeforeCollapse={1}
+          itemsAfterCollapse={1}
+          sx={{ minWidth: 0 }}
+        >
           <Link component={RouterLink} to="/suppliers" underline="hover" color="inherit">
             Suppliers
           </Link>
@@ -116,7 +139,11 @@ export function SupplierDetailPage() {
         sx={{
           display: 'grid',
           gap: 2.5,
-          gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' },
+          // `minmax(0, …)` on every track. A bare `1fr` is `minmax(auto, 1fr)`, and that
+          // `auto` floor is the width of the longest unbreakable string inside — so one
+          // long email or file name silently widens the column past the viewport and
+          // takes the whole page with it.
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 2fr) minmax(0, 1fr)' },
           alignItems: 'start',
         }}
       >
@@ -129,14 +156,17 @@ export function SupplierDetailPage() {
               sx={{
                 display: 'grid',
                 gap: 2,
-                gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' },
+                gridTemplateColumns: {
+                  xs: 'repeat(2, minmax(0, 1fr))',
+                  sm: 'repeat(3, minmax(0, 1fr))',
+                },
                 mt: 2,
               }}
             >
               <Field label="Country" value={data.country?.name ?? data.countryCode} />
               <Field label="Tier" value={data.tier} />
               <Field label="Category" value={CATEGORY_LABELS[data.category]} />
-              <Field label="Contact" value={data.contactEmail ?? '—'} />
+              <Field label="Contact" value={data.contactEmail ?? '—'} wide />
               <Field label="ERP id" value={data.externalId ?? 'manual entry'} />
               <Field label="Source" value={data.sourceSystem === 'ERP' ? 'ERP sync' : 'Manual'} />
             </Box>
@@ -190,76 +220,132 @@ export function SupplierDetailPage() {
               <Typography color="text.secondary" sx={{ py: 2 }}>
                 No certificates on file.
               </Typography>
+            ) : isMobile ? (
+              <Stack spacing={1.5}>
+                {data.certificates.map((certificate) => (
+                  <RecordCard
+                    key={certificate.id}
+                    title={CERTIFICATE_LABELS[certificate.type]}
+                    meta={
+                      <>
+                        <Typography variant="body2" color="text.secondary">
+                          {certificate.issuer ?? 'No issuer recorded'}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Expires {formatDate(certificate.expiryDate)} ·{' '}
+                          {formatCountdown(certificate.daysUntilExpiry)}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ overflowWrap: 'anywhere' }}
+                        >
+                          {certificate.fileName} · {formatFileSize(certificate.fileSize)}
+                          {certificate.certificateNumber !== null &&
+                            ` · ${certificate.certificateNumber}`}
+                        </Typography>
+                      </>
+                    }
+                    chips={<CertificateStatusChip status={certificate.status} />}
+                    action={
+                      <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                        <IconButton
+                          component="a"
+                          href={fileUrl(certificate.id)}
+                          aria-label={`Download ${certificate.fileName}`}
+                        >
+                          <Download size={18} />
+                        </IconButton>
+                        <IconButton
+                          aria-label="Delete certificate"
+                          disabled={deleteCertificate.isPending}
+                          onClick={() => {
+                            deleteCertificate.mutate(certificate.id);
+                          }}
+                        >
+                          <Trash2 size={18} />
+                        </IconButton>
+                      </Stack>
+                    }
+                  />
+                ))}
+              </Stack>
             ) : (
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Issuer</TableCell>
-                    <TableCell>Expires</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell align="right">File</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {data.certificates.map((certificate) => (
-                    <TableRow key={certificate.id}>
-                      <TableCell sx={{ fontWeight: 600 }}>
-                        {CERTIFICATE_LABELS[certificate.type]}
-                        {certificate.certificateNumber && (
+              /* `TableContainer` is what confines a too-wide table to its own scroll box.
+                 Without it the table has no overflow context, so it stretches the Paper,
+                 the grid and the page — every other element on the screen then appears
+                 cropped even though nothing is wrong with any of them. */
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Issuer</TableCell>
+                      <TableCell>Expires</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell align="right">File</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {data.certificates.map((certificate) => (
+                      <TableRow key={certificate.id}>
+                        <TableCell sx={{ fontWeight: 600 }}>
+                          {CERTIFICATE_LABELS[certificate.type]}
+                          {certificate.certificateNumber && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: 'block' }}
+                            >
+                              {certificate.certificateNumber}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>{certificate.issuer ?? '—'}</TableCell>
+                        <TableCell>
+                          {formatDate(certificate.expiryDate)}
                           <Typography
                             variant="caption"
                             color="text.secondary"
                             sx={{ display: 'block' }}
                           >
-                            {certificate.certificateNumber}
+                            {formatCountdown(certificate.daysUntilExpiry)}
                           </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>{certificate.issuer ?? '—'}</TableCell>
-                      <TableCell>
-                        {formatDate(certificate.expiryDate)}
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: 'block' }}
-                        >
-                          {formatCountdown(certificate.daysUntilExpiry)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <CertificateStatusChip status={certificate.status} />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
-                          <Tooltip
-                            title={`${certificate.fileName} · ${formatFileSize(certificate.fileSize)}`}
-                          >
+                        </TableCell>
+                        <TableCell>
+                          <CertificateStatusChip status={certificate.status} />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
+                            <Tooltip
+                              title={`${certificate.fileName} · ${formatFileSize(certificate.fileSize)}`}
+                            >
+                              <IconButton
+                                size="small"
+                                component="a"
+                                href={fileUrl(certificate.id)}
+                                aria-label={`Download ${certificate.fileName}`}
+                              >
+                                <Download size={16} />
+                              </IconButton>
+                            </Tooltip>
                             <IconButton
                               size="small"
-                              component="a"
-                              href={fileUrl(certificate.id)}
-                              aria-label={`Download ${certificate.fileName}`}
+                              aria-label="Delete certificate"
+                              disabled={deleteCertificate.isPending}
+                              onClick={() => {
+                                deleteCertificate.mutate(certificate.id);
+                              }}
                             >
-                              <Download size={16} />
+                              <Trash2 size={16} />
                             </IconButton>
-                          </Tooltip>
-                          <IconButton
-                            size="small"
-                            aria-label="Delete certificate"
-                            disabled={deleteCertificate.isPending}
-                            onClick={() => {
-                              deleteCertificate.mutate(certificate.id);
-                            }}
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             )}
           </Paper>
         </Stack>

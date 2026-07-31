@@ -16,6 +16,8 @@ import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { Download } from 'lucide-react';
 import { Link as RouterLink, useSearchParams } from 'react-router';
 
@@ -23,13 +25,17 @@ import { fileUrl } from '../api/client.ts';
 import { useCertificates } from '../api/queries.ts';
 import { CertificateStatusChip } from '../components/CertificateStatusChip.tsx';
 import { FilterBar } from '../components/FilterBar.tsx';
+import { RecordCard } from '../components/RecordCard.tsx';
 import { CERTIFICATE_LABELS, formatCountdown, formatDate, formatFileSize } from '../format.ts';
+import { MOBILE_BREAKPOINT } from '../theme.ts';
 
 /** Owned by the filter bar: counted, and cleared, as one set. */
 const FILTER_KEYS = ['status', 'type', 'expiringWithinDays'] as const;
 
 export function CertificatesPage() {
   const [params, setParams] = useSearchParams();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down(MOBILE_BREAKPOINT), { noSsr: true });
 
   const page = Number(params.get('page') ?? '1');
   const pageSize = Number(params.get('pageSize') ?? '25');
@@ -127,94 +133,166 @@ export function CertificatesPage() {
       <Paper variant="outlined">
         <Box sx={{ height: 4 }}>{isFetching && <LinearProgress />}</Box>
 
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Type</TableCell>
-                <TableCell>Supplier</TableCell>
-                <TableCell>Issuer</TableCell>
-                <TableCell>Expires</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">File</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isPending && (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                      Loading…
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
+        {isMobile ? (
+          <Stack spacing={1.5} sx={{ p: 1.5 }}>
+            {isPending && (
+              <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                Loading…
+              </Typography>
+            )}
 
-              {data?.data.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-                      No certificate matches these filters.
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
+            {data?.data.length === 0 && (
+              <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                No certificate matches these filters.
+              </Typography>
+            )}
 
-              {data?.data.map((certificate) => (
-                <TableRow key={certificate.id} hover>
-                  <TableCell sx={{ fontWeight: 600 }}>
-                    {CERTIFICATE_LABELS[certificate.type]}
-                    {certificate.certificateNumber && (
+            {data?.data.map((certificate) => (
+              <RecordCard
+                key={certificate.id}
+                title={CERTIFICATE_LABELS[certificate.type]}
+                meta={
+                  <>
+                    <Typography variant="body2" color="text.secondary">
+                      <Link
+                        component={RouterLink}
+                        to={`/suppliers/${certificate.supplier.id}`}
+                        underline="hover"
+                      >
+                        {certificate.supplier.name}
+                      </Link>{' '}
+                      · tier {certificate.supplier.tier}
+                      {certificate.issuer !== null && ` · ${certificate.issuer}`}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Expires {formatDate(certificate.expiryDate)} ·{' '}
+                      {formatCountdown(certificate.daysUntilExpiry)}
+                    </Typography>
+                    {/* On desktop these two live in the download button's tooltip. Touch
+                        has no hover, so on mobile the tooltip is the one place they
+                        could not be read — they become part of the card instead. */}
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ wordBreak: 'break-all' }}
+                    >
+                      {certificate.fileName} · {formatFileSize(certificate.fileSize)}
+                      {certificate.certificateNumber !== null &&
+                        ` · ${certificate.certificateNumber}`}
+                    </Typography>
+                  </>
+                }
+                chips={<CertificateStatusChip status={certificate.status} />}
+                action={
+                  <IconButton
+                    component="a"
+                    href={fileUrl(certificate.id)}
+                    aria-label={`Download ${certificate.fileName}`}
+                  >
+                    <Download size={18} />
+                  </IconButton>
+                }
+              />
+            ))}
+          </Stack>
+        ) : (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Supplier</TableCell>
+                  <TableCell>Issuer</TableCell>
+                  <TableCell>Expires</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="right">File</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {isPending && (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                        Loading…
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {data?.data.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                        No certificate matches these filters.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {data?.data.map((certificate) => (
+                  <TableRow key={certificate.id} hover>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      {CERTIFICATE_LABELS[certificate.type]}
+                      {certificate.certificateNumber && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block' }}
+                        >
+                          {certificate.certificateNumber}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        component={RouterLink}
+                        to={`/suppliers/${certificate.supplier.id}`}
+                        underline="hover"
+                      >
+                        {certificate.supplier.name}
+                      </Link>
                       <Typography
                         variant="caption"
                         color="text.secondary"
                         sx={{ display: 'block' }}
                       >
-                        {certificate.certificateNumber}
+                        tier {certificate.supplier.tier}
                       </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      component={RouterLink}
-                      to={`/suppliers/${certificate.supplier.id}`}
-                      underline="hover"
-                    >
-                      {certificate.supplier.name}
-                    </Link>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      tier {certificate.supplier.tier}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{certificate.issuer ?? '—'}</TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {formatDate(certificate.expiryDate)}
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {formatCountdown(certificate.daysUntilExpiry)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <CertificateStatusChip status={certificate.status} />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip
-                      title={`${certificate.fileName} · ${formatFileSize(certificate.fileSize)}`}
-                    >
-                      <IconButton
-                        size="small"
-                        component="a"
-                        href={fileUrl(certificate.id)}
-                        aria-label={`Download ${certificate.fileName}`}
+                    </TableCell>
+                    <TableCell>{certificate.issuer ?? '—'}</TableCell>
+                    <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {formatDate(certificate.expiryDate)}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block' }}
                       >
-                        <Download size={16} />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                        {formatCountdown(certificate.daysUntilExpiry)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <CertificateStatusChip status={certificate.status} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip
+                        title={`${certificate.fileName} · ${formatFileSize(certificate.fileSize)}`}
+                      >
+                        <IconButton
+                          size="small"
+                          component="a"
+                          href={fileUrl(certificate.id)}
+                          aria-label={`Download ${certificate.fileName}`}
+                        >
+                          <Download size={16} />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
 
         <TablePagination
           component="div"
@@ -224,10 +302,11 @@ export function CertificatesPage() {
             update('page', String(nextPage + 1));
           }}
           rowsPerPage={pageSize}
-          rowsPerPageOptions={[25, 50, 100]}
+          rowsPerPageOptions={isMobile ? [] : [25, 50, 100]}
           onRowsPerPageChange={(event) => {
             update('pageSize', event.target.value);
           }}
+          sx={{ '& .MuiTablePagination-toolbar': { px: { xs: 1, md: 2 } } }}
         />
       </Paper>
     </Stack>

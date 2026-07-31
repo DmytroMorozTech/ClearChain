@@ -2,6 +2,7 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import LinearProgress from '@mui/material/LinearProgress';
+import Link from '@mui/material/Link';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -15,15 +16,33 @@ import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { Check, X } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router';
 
 import { useCountries, useSuppliers } from '../api/queries.ts';
 import { FilterBar } from '../components/FilterBar.tsx';
+import { RecordCard } from '../components/RecordCard.tsx';
 import { RiskChip } from '../components/RiskChip.tsx';
 import { CATEGORY_LABELS } from '../format.ts';
+import { MOBILE_BREAKPOINT } from '../theme.ts';
 
 type SortField = 'name' | 'tier' | 'riskScore';
+
+/**
+ * The card list has no column headers, so it has nowhere to hang a sort control — the
+ * same orderings are offered as a select instead. Losing sort on mobile would have been
+ * a functional regression, not a layout compromise.
+ */
+const SORT_OPTIONS = [
+  { value: 'name:asc', label: 'Name A–Z' },
+  { value: 'name:desc', label: 'Name Z–A' },
+  { value: 'riskScore:desc', label: 'Risk, highest first' },
+  { value: 'riskScore:asc', label: 'Risk, lowest first' },
+  { value: 'tier:asc', label: 'Tier, nearest first' },
+  { value: 'tier:desc', label: 'Tier, furthest first' },
+] as const;
 
 /** Owned by the filter bar: counted, and cleared, as one set. */
 const FILTER_KEYS = [
@@ -46,6 +65,8 @@ export function SuppliersPage() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const countries = useCountries();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down(MOBILE_BREAKPOINT), { noSsr: true });
 
   const page = Number(params.get('page') ?? '1');
   const pageSize = Number(params.get('pageSize') ?? '25');
@@ -191,95 +212,57 @@ export function SuppliersPage() {
       <Paper variant="outlined">
         <Box sx={{ height: 4 }}>{isFetching && <LinearProgress />}</Box>
 
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sortDirection={sortField === 'name' ? sortDirection : false}>
-                  <TableSortLabel
-                    active={sortField === 'name'}
-                    direction={sortField === 'name' ? sortDirection : 'asc'}
-                    onClick={() => {
-                      toggleSort('name');
-                    }}
-                  >
-                    Supplier
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>Country</TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={sortField === 'tier'}
-                    direction={sortField === 'tier' ? sortDirection : 'asc'}
-                    onClick={() => {
-                      toggleSort('tier');
-                    }}
-                  >
-                    Tier
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={sortField === 'riskScore'}
-                    direction={sortField === 'riskScore' ? sortDirection : 'asc'}
-                    onClick={() => {
-                      toggleSort('riskScore');
-                    }}
-                  >
-                    Risk
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>Compliant</TableCell>
-                <TableCell align="right">Certificates</TableCell>
-              </TableRow>
-            </TableHead>
+        {isMobile ? (
+          <Stack spacing={1.5} sx={{ p: 1.5 }}>
+            <TextField
+              select
+              label="Sort by"
+              size="small"
+              value={sort}
+              onChange={(event) => {
+                update('sort', event.target.value);
+              }}
+            >
+              {SORT_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
 
-            <TableBody>
-              {isPending && (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                      Loading…
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
+            {isPending && (
+              <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                Loading…
+              </Typography>
+            )}
 
-              {data?.data.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-                      No supplier matches these filters.
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
+            {data?.data.length === 0 && (
+              <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                No supplier matches these filters.
+              </Typography>
+            )}
 
-              {data?.data.map((supplier) => (
-                <TableRow
-                  key={supplier.id}
-                  hover
-                  onClick={() => {
-                    void navigate(`/suppliers/${supplier.id}`);
-                  }}
-                  sx={{ cursor: 'pointer' }}
-                >
-                  <TableCell sx={{ fontWeight: 600 }}>{supplier.name}</TableCell>
-                  <TableCell>{supplier.country?.name ?? supplier.countryCode}</TableCell>
-                  <TableCell>{supplier.tier}</TableCell>
-                  <TableCell>{CATEGORY_LABELS[supplier.category]}</TableCell>
-                  <TableCell>
+            {data?.data.map((supplier) => (
+              <RecordCard
+                key={supplier.id}
+                to={`/suppliers/${supplier.id}`}
+                title={supplier.name}
+                meta={
+                  <Typography variant="body2" color="text.secondary">
+                    {supplier.country?.name ?? supplier.countryCode} · Tier {supplier.tier} ·{' '}
+                    {CATEGORY_LABELS[supplier.category]}
+                  </Typography>
+                }
+                chips={
+                  <>
                     <RiskChip level={supplier.riskLevel} score={supplier.riskScore} />
-                  </TableCell>
-                  <TableCell>
                     {supplier.isCompliant ? (
                       <Chip
                         size="small"
                         variant="outlined"
                         color="success"
                         icon={<Check size={14} />}
-                        label="Yes"
+                        label="Compliant"
                       />
                     ) : (
                       <Chip
@@ -287,17 +270,148 @@ export function SuppliersPage() {
                         variant="outlined"
                         color="default"
                         icon={<X size={14} />}
-                        label="No"
+                        label="Not compliant"
                       />
                     )}
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={`${String(supplier.certificateCount)} ${
+                        supplier.certificateCount === 1 ? 'certificate' : 'certificates'
+                      }`}
+                    />
+                  </>
+                }
+              />
+            ))}
+          </Stack>
+        ) : (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sortDirection={sortField === 'name' ? sortDirection : false}>
+                    <TableSortLabel
+                      active={sortField === 'name'}
+                      direction={sortField === 'name' ? sortDirection : 'asc'}
+                      onClick={() => {
+                        toggleSort('name');
+                      }}
+                    >
+                      Supplier
+                    </TableSortLabel>
                   </TableCell>
-                  <TableCell align="right">{supplier.certificateCount}</TableCell>
+                  <TableCell>Country</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortField === 'tier'}
+                      direction={sortField === 'tier' ? sortDirection : 'asc'}
+                      onClick={() => {
+                        toggleSort('tier');
+                      }}
+                    >
+                      Tier
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortField === 'riskScore'}
+                      direction={sortField === 'riskScore' ? sortDirection : 'asc'}
+                      onClick={() => {
+                        toggleSort('riskScore');
+                      }}
+                    >
+                      Risk
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>Compliant</TableCell>
+                  <TableCell align="right">Certificates</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
 
+              <TableBody>
+                {isPending && (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                        Loading…
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {data?.data.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                        No supplier matches these filters.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {data?.data.map((supplier) => (
+                  <TableRow
+                    key={supplier.id}
+                    hover
+                    onClick={() => {
+                      void navigate(`/suppliers/${supplier.id}`);
+                    }}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    {/* A real link, not just a clickable row: it restores keyboard access,
+                      middle-click and open-in-new-tab, which the row handler alone cannot
+                      offer. The anchor sits on the cell because a `TableRow` rendered as
+                      an anchor is invalid table markup. */}
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      <Link
+                        component={RouterLink}
+                        to={`/suppliers/${supplier.id}`}
+                        underline="hover"
+                        color="inherit"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                        }}
+                      >
+                        {supplier.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{supplier.country?.name ?? supplier.countryCode}</TableCell>
+                    <TableCell>{supplier.tier}</TableCell>
+                    <TableCell>{CATEGORY_LABELS[supplier.category]}</TableCell>
+                    <TableCell>
+                      <RiskChip level={supplier.riskLevel} score={supplier.riskScore} />
+                    </TableCell>
+                    <TableCell>
+                      {supplier.isCompliant ? (
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          color="success"
+                          icon={<Check size={14} />}
+                          label="Yes"
+                        />
+                      ) : (
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          color="default"
+                          icon={<X size={14} />}
+                          label="No"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell align="right">{supplier.certificateCount}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+
+        {/* An empty `rowsPerPageOptions` drops the page-size select entirely, which is
+            what stops the pagination toolbar overflowing below ~400px. */}
         <TablePagination
           component="div"
           count={data?.total ?? 0}
@@ -306,10 +420,11 @@ export function SuppliersPage() {
             update('page', String(nextPage + 1));
           }}
           rowsPerPage={pageSize}
-          rowsPerPageOptions={[10, 25, 50, 100]}
+          rowsPerPageOptions={isMobile ? [] : [10, 25, 50, 100]}
           onRowsPerPageChange={(event) => {
             update('pageSize', event.target.value);
           }}
+          sx={{ '& .MuiTablePagination-toolbar': { px: { xs: 1, md: 2 } } }}
         />
       </Paper>
     </Stack>

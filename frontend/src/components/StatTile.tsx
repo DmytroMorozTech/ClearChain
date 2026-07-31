@@ -20,14 +20,16 @@ interface StatTileProps {
  */
 export function StatTile({ label, value, caption, accent, hero = false }: StatTileProps) {
   return (
-    <Paper variant="outlined" sx={{ p: 2.5, height: '100%' }}>
+    <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, height: '100%' }}>
       <Stack spacing={0.5}>
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
           {label}
         </Typography>
         <Typography
           sx={{
-            fontSize: hero ? 52 : 32,
+            // The tiles sit two-up on a phone, so each is about 190px wide before
+            // padding. 52px in that space leaves the caption nowhere to go.
+            fontSize: hero ? { xs: 38, md: 52 } : { xs: 26, md: 32 },
             fontWeight: 680,
             lineHeight: 1.1,
             letterSpacing: '-0.02em',

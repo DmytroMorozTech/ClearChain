@@ -24,7 +24,9 @@ export function LoginPage() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        // `dvh`, not `vh`: on mobile browsers `100vh` is the viewport with the URL bar
+        // collapsed, so the card sits below the fold until the user scrolls.
+        minHeight: '100dvh',
         display: 'grid',
         placeItems: 'center',
         backgroundColor: 'background.default',

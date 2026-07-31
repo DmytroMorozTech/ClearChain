@@ -8,6 +8,8 @@ import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { Upload } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
@@ -32,6 +34,14 @@ export function CertificateUploadDialog({
   onClose,
 }: CertificateUploadDialogProps) {
   const upload = useUploadCertificate();
+  const theme = useTheme();
+  /**
+   * `sm`, not the app-wide `md`. This is the one deliberate exception: a 600px dialog
+   * still sits comfortably on a 768px tablet, so going full-screen there would be a
+   * worse experience, not a better one. The threshold that matters here is where the
+   * form stops fitting — a date picker needs about 160px and there are two of them.
+   */
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
 
   const [type, setType] = useState<CertificateType>('ISO_14001');
   const [issueDate, setIssueDate] = useState(today());
@@ -71,7 +81,7 @@ export function CertificateUploadDialog({
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <form onSubmit={handleSubmit}>
         <DialogTitle>Upload certificate</DialogTitle>
 
@@ -104,7 +114,9 @@ export function CertificateUploadDialog({
               ))}
             </TextField>
 
-            <Stack direction="row" spacing={2}>
+            {/* Side by side these are ~160px each on a phone, which is narrower than the
+                native date picker wants. */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 label="Issue date"
                 type="date"
