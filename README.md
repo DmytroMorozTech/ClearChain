@@ -1,4 +1,9 @@
 # ClearChain
+
+**Live demo:** [https://clearchain.dmoroz.dev/](https://clearchain.dmoroz.dev/)
+**Username:** `testUser`
+**Password:** `ClearChain-Demo-7fQ2`
+
 <img width="1894" height="851" alt="image" src="https://github.com/user-attachments/assets/933690a9-fa75-41d9-b2bc-43c2d077874e" />
 
 <img width="1912" height="893" alt="image" src="https://github.com/user-attachments/assets/15280994-cca4-4c79-8c91-dc8f29cbf828" />
