@@ -90,7 +90,23 @@ export function SupplierDetailPage() {
     <Stack spacing={2.5}>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
         <Tooltip title="Back">
-          <IconButton onClick={goBack} size="small" aria-label="Go back">
+          <IconButton
+            onClick={goBack}
+            size="small"
+            sx={{
+              '&&': { p: 0, minWidth: 'auto', minHeight: 'auto' },
+              borderRadius: '8px',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 44,
+                height: 44,
+              },
+            }}
+          >
             <ArrowLeft size={18} />
           </IconButton>
         </Tooltip>
