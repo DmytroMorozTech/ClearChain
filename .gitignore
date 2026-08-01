@@ -34,4 +34,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .idea/
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
 *.tsbuildinfo

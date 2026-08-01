@@ -1,0 +1,6 @@
+{
+  // Prompted on first open of the workspace. The settings in settings.json are inert
+  // without the Prettier extension installed, so recommending it is what makes
+  // format-on-save actually work on a fresh machine.
+  "recommendations": ["esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
+}
