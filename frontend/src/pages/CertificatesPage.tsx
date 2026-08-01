@@ -67,9 +67,9 @@ export function CertificatesPage() {
           {data && <Typography color="text.secondary">{data.total} on file</Typography>}
         </Stack>
         <InfoNote>
-          The evidence behind every compliance decision, and when each piece expires.
-          Status is worked out from today's date rather than stored, so nothing has to run
-          overnight to keep this list accurate.
+          The evidence behind every compliance decision, and when each piece expires. Status is
+          worked out from today's date rather than stored, so nothing has to run overnight to keep
+          this list accurate.
         </InfoNote>
       </Stack>
 

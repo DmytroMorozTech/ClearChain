@@ -117,9 +117,9 @@ export function SuppliersPage() {
           )}
         </Stack>
         <InfoNote>
-          Every supplier in the chain, down to raw materials. A supplier is compliant only
-          if it holds all the certificates its category requires — its own, not those of
-          the suppliers beneath it.
+          Every supplier in the chain, down to raw materials. A supplier is compliant only if it
+          holds all the certificates its category requires — its own, not those of the suppliers
+          beneath it.
         </InfoNote>
       </Stack>
 

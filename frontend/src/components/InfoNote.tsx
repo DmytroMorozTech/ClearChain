@@ -21,11 +21,7 @@ export function InfoNote({ children }: { children: ReactNode }) {
     <Stack direction="row" spacing={0.75} sx={{ alignItems: 'flex-start' }}>
       {/* Nudged down to sit on the first line's baseline, and held at its size so a long
           note cannot squeeze it. */}
-      <Info
-        size={14}
-        aria-hidden
-        style={{ flexShrink: 0, marginTop: 2, opacity: 0.7 }}
-      />
+      <Info size={14} aria-hidden style={{ flexShrink: 0, marginTop: 2, opacity: 0.7 }} />
       <Typography variant="caption" color="text.secondary">
         {children}
       </Typography>
