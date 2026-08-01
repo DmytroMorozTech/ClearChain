@@ -123,6 +123,13 @@ none of which appear in the request, so the whole subtree is measured before the
 and renumbered inside the same transaction. A rejected move leaves the hierarchy exactly
 as it was.
 
+The API is complete CRUD; the UI deliberately exposes a subset. `DELETE /suppliers/:id`
+exists to enforce and prove the hierarchy rule — it refuses with 409 when children exist —
+rather than because the interface needs a delete button. The database says the same thing
+independently: the parent relation is `onDelete: Restrict`, so even a write that bypasses
+the application cannot orphan a branch. Certificates, by contrast, do cascade, because
+they belong to the supplier rather than standing on their own.
+
 ---
 
 ## Layout
