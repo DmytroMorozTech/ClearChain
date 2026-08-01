@@ -22,6 +22,7 @@ import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router';
 
 import { useCountries, useSuppliers } from '../api/queries.ts';
 import { FilterBar } from '../components/FilterBar.tsx';
+import { InfoNote } from '../components/InfoNote.tsx';
 import { NotCompliantChip } from '../components/NotCompliantChip.tsx';
 import { RecordCard } from '../components/RecordCard.tsx';
 import { RiskChip } from '../components/RiskChip.tsx';
@@ -105,14 +106,21 @@ export function SuppliersPage() {
 
   return (
     <Stack spacing={2.5}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'baseline' }}>
-        <Typography variant="h1">Suppliers</Typography>
-        {data && (
-          <Typography color="text.secondary">
-            {data.total} {data.total === 1 ? 'supplier' : 'suppliers'}
-            {activeFilters > 0 ? ' matching' : ''}
-          </Typography>
-        )}
+      <Stack spacing={0.75}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'baseline' }}>
+          <Typography variant="h1">Suppliers</Typography>
+          {data && (
+            <Typography color="text.secondary">
+              {data.total} {data.total === 1 ? 'supplier' : 'suppliers'}
+              {activeFilters > 0 ? ' matching' : ''}
+            </Typography>
+          )}
+        </Stack>
+        <InfoNote>
+          Every supplier in the chain, down to raw materials. A supplier is compliant only
+          if it holds all the certificates its category requires — its own, not those of
+          the suppliers beneath it.
+        </InfoNote>
       </Stack>
 
       <FilterBar filterKeys={FILTER_KEYS}>

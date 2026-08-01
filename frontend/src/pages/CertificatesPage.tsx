@@ -25,6 +25,7 @@ import { fileUrl } from '../api/client.ts';
 import { useCertificates } from '../api/queries.ts';
 import { CertificateStatusChip } from '../components/CertificateStatusChip.tsx';
 import { FilterBar } from '../components/FilterBar.tsx';
+import { InfoNote } from '../components/InfoNote.tsx';
 import { RecordCard } from '../components/RecordCard.tsx';
 import { CERTIFICATE_LABELS, formatCountdown, formatDate, formatFileSize } from '../format.ts';
 import { MOBILE_BREAKPOINT } from '../theme.ts';
@@ -60,9 +61,16 @@ export function CertificatesPage() {
 
   return (
     <Stack spacing={2.5}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'baseline' }}>
-        <Typography variant="h1">Certificates</Typography>
-        {data && <Typography color="text.secondary">{data.total} on file</Typography>}
+      <Stack spacing={0.75}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'baseline' }}>
+          <Typography variant="h1">Certificates</Typography>
+          {data && <Typography color="text.secondary">{data.total} on file</Typography>}
+        </Stack>
+        <InfoNote>
+          The evidence behind every compliance decision, and when each piece expires.
+          Status is worked out from today's date rather than stored, so nothing has to run
+          overnight to keep this list accurate.
+        </InfoNote>
       </Stack>
 
       <FilterBar filterKeys={FILTER_KEYS}>

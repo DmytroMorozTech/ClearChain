@@ -15,6 +15,7 @@ import { useChain } from '../api/queries.ts';
 import { patchChainView, readChainView } from '../chainView.ts';
 import { ChainFlow } from '../components/ChainFlow.tsx';
 import { ChainList } from '../components/ChainList.tsx';
+import { InfoNote } from '../components/InfoNote.tsx';
 import { ViewToggle } from '../components/ViewToggle.tsx';
 import { MOBILE_BREAKPOINT, RISK_COLORS, RISK_LABELS, type RiskLevel } from '../theme.ts';
 
@@ -104,6 +105,12 @@ export function ChainPage() {
           />
         </Paper>
       </Stack>
+
+      <InfoNote>
+        The same suppliers, drawn as a chain. Risk climbs it, weaker at each step, so a supplier
+        with a clean record of its own can still read as medium risk above a high-risk raw-material
+        source.
+      </InfoNote>
 
       {/* A legend is present because the map encodes risk; the nodes name their band
           as well, so identity never rests on colour alone. The list labels every chip,

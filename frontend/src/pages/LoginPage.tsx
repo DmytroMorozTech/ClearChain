@@ -1,6 +1,7 @@
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Link from '@mui/material/Link';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
@@ -43,7 +44,8 @@ export function LoginPage() {
           </Stack>
 
           <Typography color="text.secondary" variant="body2">
-            Supply chain compliance dashboard. Sign in to continue.
+            Compliance tracking for a fictional apparel buyer: suppliers across three tiers, the
+            certificates they hold, and a risk score derived from both.
           </Typography>
 
           {/* The server's own message, verbatim. It is deliberately vague about which
@@ -86,6 +88,21 @@ export function LoginPage() {
           >
             {login.isPending ? 'Signing in…' : 'Sign in'}
           </Button>
+
+          {/* Below the button, so it never delays a reader who already holds the
+              credentials. The credentials themselves stay off this page on purpose —
+              they travel with the link that shares the demo, rather than being printed
+              beside the lock. */}
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+            An independent portfolio project — the buyer and its suppliers are invented.{' '}
+            <Link
+              href="https://github.com/DmytroMorozTech/ClearChain"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Source and design notes
+            </Link>
+          </Typography>
         </Stack>
       </Paper>
     </Box>
