@@ -4,7 +4,7 @@
 **Username:** `testUser`
 **Password:** `ClearChain-Demo-7fQ2`
 
-<img width="1899" height="871" alt="image" src="https://github.com/user-attachments/assets/9901b754-63ae-4449-a17f-e7bea648de5d" />
+<img width="1902" height="895" alt="image" src="https://github.com/user-attachments/assets/11bf71a5-2d25-46ae-af70-fc073e6386e1" />
 
 <img width="1902" height="932" alt="image" src="https://github.com/user-attachments/assets/021d6cb4-b3b2-4348-a8c3-f77eaf41297e" />
 
