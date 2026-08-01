@@ -13,7 +13,9 @@ React 19 · TypeScript · Vite · MUI · Recharts · react-flow
 Node 24 · Express 5 · Prisma 7 · PostgreSQL 16 · Docker
 ```
 
-<img width="1902" height="895" alt="Dashboard" src="https://github.com/user-attachments/assets/11bf71a5-2d25-46ae-af70-fc073e6386e1" />
+<img width="1914" height="808" alt="image" src="https://github.com/user-attachments/assets/cc31603e-89c4-41b1-a993-250638b27e41" />
+
+<img width="1545" height="585" alt="image" src="https://github.com/user-attachments/assets/da540408-63e7-4c46-bdab-69b277e8c301" />
 
 <img width="1902" height="932" alt="Supplier list" src="https://github.com/user-attachments/assets/021d6cb4-b3b2-4348-a8c3-f77eaf41297e" />
 
