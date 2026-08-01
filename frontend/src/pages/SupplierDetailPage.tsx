@@ -24,8 +24,10 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router';
 
 import { fileUrl } from '../api/client.ts';
 import { useDeleteCertificate, useSupplier } from '../api/queries.ts';
+import type { SupplierDetail } from '../api/schemas.ts';
 import { CertificateStatusChip } from '../components/CertificateStatusChip.tsx';
 import { CertificateUploadDialog } from '../components/CertificateUploadDialog.tsx';
+import { ConfirmDialog } from '../components/ConfirmDialog.tsx';
 import { NotCompliantChip } from '../components/NotCompliantChip.tsx';
 import { RecordCard } from '../components/RecordCard.tsx';
 import { RiskBreakdown } from '../components/RiskBreakdown.tsx';
@@ -75,11 +77,19 @@ function useGoBack(fallback: string): () => void {
   };
 }
 
+type CertificateRow = SupplierDetail['certificates'][number];
+
 export function SupplierDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { data, isPending, isError, error } = useSupplier(id);
   const deleteCertificate = useDeleteCertificate();
   const [uploadOpen, setUploadOpen] = useState(false);
+  /*
+   * The whole record, not just its id: the confirmation has to name what it is about to
+   * destroy, and the row it came from may be gone from the table by the time the dialog
+   * is answered.
+   */
+  const [pendingDelete, setPendingDelete] = useState<CertificateRow | null>(null);
   const goBack = useGoBack('/suppliers');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down(MOBILE_BREAKPOINT), { noSsr: true });
@@ -289,10 +299,10 @@ export function SupplierDetailPage() {
                           <Download size={18} />
                         </IconButton>
                         <IconButton
-                          aria-label="Delete certificate"
+                          aria-label={`Delete ${CERTIFICATE_LABELS[certificate.type]} certificate`}
                           disabled={deleteCertificate.isPending}
                           onClick={() => {
-                            deleteCertificate.mutate(certificate.id);
+                            setPendingDelete(certificate);
                           }}
                         >
                           <Trash2 size={18} />
@@ -363,10 +373,10 @@ export function SupplierDetailPage() {
                             </Tooltip>
                             <IconButton
                               size="small"
-                              aria-label="Delete certificate"
+                              aria-label={`Delete ${CERTIFICATE_LABELS[certificate.type]} certificate`}
                               disabled={deleteCertificate.isPending}
                               onClick={() => {
-                                deleteCertificate.mutate(certificate.id);
+                                setPendingDelete(certificate);
                               }}
                             >
                               <Trash2 size={16} />
@@ -432,6 +442,44 @@ export function SupplierDetailPage() {
           setUploadOpen(false);
         }}
       />
+
+      {/* Mounted only while a deletion is pending confirmation, so the description never
+          has to survive the record being cleared — the alternative renders an empty
+          dialog for the length of the closing fade. */}
+      {pendingDelete !== null && (
+        <ConfirmDialog
+          open
+          title="Delete this certificate?"
+          description={
+            <>
+              <Box component="strong" sx={{ color: 'text.primary' }}>
+                {CERTIFICATE_LABELS[pendingDelete.type]}
+              </Box>
+              {pendingDelete.issuer !== null && ` from ${pendingDelete.issuer}`}
+              {pendingDelete.certificateNumber !== null && ` · ${pendingDelete.certificateNumber}`}
+              {` · expires ${formatDate(pendingDelete.expiryDate)}.`}
+              <Box sx={{ mt: 1.5 }}>
+                The stored file is removed permanently and cannot be recovered. This supplier&apos;s
+                compliance and risk score are recalculated without it, which may change the score of
+                everything downstream of it.
+              </Box>
+            </>
+          }
+          confirmLabel="Delete"
+          pendingLabel="Deleting…"
+          pending={deleteCertificate.isPending}
+          onCancel={() => {
+            setPendingDelete(null);
+          }}
+          onConfirm={() => {
+            deleteCertificate.mutate(pendingDelete.id, {
+              onSuccess: () => {
+                setPendingDelete(null);
+              },
+            });
+          }}
+        />
+      )}
     </Stack>
   );
 }
