@@ -17,7 +17,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ChevronDown, ShieldCheck } from 'lucide-react';
+import { ChevronDown, ShieldCheck, X } from 'lucide-react';
 import {
   createContext,
   useCallback,
@@ -218,8 +218,15 @@ function SupplyNode({ id, data }: NodeProps<Node<FlowNodeData>>) {
         </Typography>
       )}
 
+      {/* The same red as the list badge, at node scale. A real chip is 24px tall and
+          would take a quarter of a 150px node, so here the mark carries it instead. */}
       {data.isCompliant === false && (
-        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>not compliant</Typography>
+        <Stack direction="row" spacing={0.4} sx={{ alignItems: 'center', mt: 0.25 }}>
+          <X size={11} color={RISK_COLORS.RED} aria-hidden />
+          <Typography sx={{ fontSize: 11, fontWeight: 600, color: RISK_COLORS.RED }}>
+            not compliant
+          </Typography>
+        </Stack>
       )}
 
       {/* Hangs off the bottom edge, where the children it reveals will appear. The count

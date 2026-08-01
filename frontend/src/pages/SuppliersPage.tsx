@@ -18,11 +18,11 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
-import { Check, X } from 'lucide-react';
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router';
 
 import { useCountries, useSuppliers } from '../api/queries.ts';
 import { FilterBar } from '../components/FilterBar.tsx';
+import { NotCompliantChip } from '../components/NotCompliantChip.tsx';
 import { RecordCard } from '../components/RecordCard.tsx';
 import { RiskChip } from '../components/RiskChip.tsx';
 import { CATEGORY_LABELS } from '../format.ts';
@@ -256,23 +256,7 @@ export function SuppliersPage() {
                 chips={
                   <>
                     <RiskChip level={supplier.riskLevel} score={supplier.riskScore} />
-                    {supplier.isCompliant ? (
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        color="success"
-                        icon={<Check size={14} />}
-                        label="Compliant"
-                      />
-                    ) : (
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        color="default"
-                        icon={<X size={14} />}
-                        label="Not compliant"
-                      />
-                    )}
+                    {!supplier.isCompliant && <NotCompliantChip />}
                     <Chip
                       size="small"
                       variant="outlined"
@@ -325,7 +309,7 @@ export function SuppliersPage() {
                       Risk
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell>Compliant</TableCell>
+                  <TableCell>Compliance</TableCell>
                   <TableCell align="right">Certificates</TableCell>
                 </TableRow>
               </TableHead>
@@ -383,25 +367,10 @@ export function SuppliersPage() {
                     <TableCell>
                       <RiskChip level={supplier.riskLevel} score={supplier.riskScore} />
                     </TableCell>
-                    <TableCell>
-                      {supplier.isCompliant ? (
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          color="success"
-                          icon={<Check size={14} />}
-                          label="Yes"
-                        />
-                      ) : (
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          color="default"
-                          icon={<X size={14} />}
-                          label="No"
-                        />
-                      )}
-                    </TableCell>
+                    {/* Empty where a supplier is compliant. The column is scanned for what
+                        needs attention, and a badge on every conforming row would bury
+                        exactly the rows that do not conform. */}
+                    <TableCell>{!supplier.isCompliant && <NotCompliantChip />}</TableCell>
                     <TableCell align="right">{supplier.certificateCount}</TableCell>
                   </TableRow>
                 ))}

@@ -26,6 +26,7 @@ import { fileUrl } from '../api/client.ts';
 import { useDeleteCertificate, useSupplier } from '../api/queries.ts';
 import { CertificateStatusChip } from '../components/CertificateStatusChip.tsx';
 import { CertificateUploadDialog } from '../components/CertificateUploadDialog.tsx';
+import { NotCompliantChip } from '../components/NotCompliantChip.tsx';
 import { RecordCard } from '../components/RecordCard.tsx';
 import { RiskBreakdown } from '../components/RiskBreakdown.tsx';
 import { RiskChip } from '../components/RiskChip.tsx';
@@ -143,12 +144,7 @@ export function SupplierDetailPage() {
         <Typography variant="h1">{data.name}</Typography>
         <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
           <RiskChip level={data.riskLevel} score={data.riskScore} size="medium" />
-          <Chip
-            size="medium"
-            variant="outlined"
-            color={data.isCompliant ? 'success' : 'default'}
-            label={data.isCompliant ? 'Compliant' : 'Not compliant'}
-          />
+          {!data.isCompliant && <NotCompliantChip size="medium" />}
           {!data.isActive && <Chip size="medium" color="warning" label="Inactive" />}
         </Stack>
       </Stack>

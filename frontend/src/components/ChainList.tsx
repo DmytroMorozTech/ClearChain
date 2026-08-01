@@ -7,6 +7,7 @@ import { Link as RouterLink } from 'react-router';
 
 import type { Chain, ChainNode } from '../api/schemas.ts';
 import { type ChainTree, type IssueView, buildChainTree, findIssues } from '../chain.ts';
+import { NotCompliantChip } from './NotCompliantChip.tsx';
 import { RiskChip } from './RiskChip.tsx';
 
 function Row({ node, dimmed }: { node: ChainNode; dimmed: boolean }) {
@@ -38,11 +39,7 @@ function Row({ node, dimmed }: { node: ChainNode; dimmed: boolean }) {
           {node.countryName ?? node.countryCode} · tier {node.tier}
         </Typography>
         <RiskChip level={node.riskLevel} score={node.riskScore} />
-        {node.isCompliant === false && (
-          <Typography variant="body2" color="text.secondary">
-            not compliant
-          </Typography>
-        )}
+        {node.isCompliant === false && <NotCompliantChip />}
       </Stack>
     </Box>
   );
