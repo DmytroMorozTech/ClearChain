@@ -215,12 +215,11 @@ function SupplyNode({ id, data }: NodeProps<Node<FlowNodeData>>) {
       {data.riskLevel && (
         <Typography sx={{ fontSize: 11, fontWeight: 700, color, mt: 0.25 }}>
           {RISK_LABELS[data.riskLevel]} risk · {data.riskScore}
-          {data.isCompliant === false && (
-            <Typography component="span" sx={{ fontSize: 11, color: 'text.secondary' }}>
-              {' · not compliant'}
-            </Typography>
-          )}
         </Typography>
+      )}
+
+      {data.isCompliant === false && (
+        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>not compliant</Typography>
       )}
 
       {/* Hangs off the bottom edge, where the children it reveals will appear. The count
