@@ -2,6 +2,7 @@ import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
@@ -9,7 +10,7 @@ import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { LogOut, ShieldCheck } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, Link as RouterLink } from 'react-router';
 
 import { useHealth, useLogout, useSession } from '../api/queries.ts';
 import { NAV_ITEMS } from '../nav.ts';
@@ -92,16 +93,29 @@ export function AppLayout() {
         sx={{ borderBottom: 1, borderColor: 'divider' }}
       >
         <Toolbar sx={{ gap: { xs: 1, md: 3 } }}>
-          <Stack
-            direction="row"
-            spacing={1.25}
-            sx={{ alignItems: 'center', mr: { md: 1 }, minWidth: 0 }}
+          <Link
+            component={RouterLink}
+            to="/"
+            underline="none"
+            color="inherit"
+            aria-label="ClearChain — go to the dashboard"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.25,
+              mr: { md: 1 },
+              minWidth: 0,
+              borderRadius: 1,
+              transition: 'opacity 120ms',
+              '&:hover': { opacity: 0.7 },
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            }}
           >
             <ShieldCheck size={26} color="#4F46E5" strokeWidth={2.2} aria-hidden />
             <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
               ClearChain
             </Typography>
-          </Stack>
+          </Link>
 
           {isMobile ? (
             <Box sx={{ flexGrow: 1 }} />
