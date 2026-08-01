@@ -15,6 +15,7 @@ interface ViewToggleProps<T extends string> {
   options: readonly ViewToggleOption<T>[];
   /** Names the group for screen readers — "Chain view", "Chart view". */
   label: string;
+  disabled?: boolean;
 }
 
 /**
@@ -29,6 +30,7 @@ export function ViewToggle<T extends string>({
   onChange,
   options,
   label,
+  disabled = false,
 }: ViewToggleProps<T>) {
   return (
     <ToggleButtonGroup
@@ -36,6 +38,7 @@ export function ViewToggle<T extends string>({
       exclusive
       size="small"
       aria-label={label}
+      disabled={disabled}
       onChange={(_event, next: T | null) => {
         // Null arrives when the selected segment is pressed again. A view has to be
         // something, so that press is ignored rather than clearing the selection.
@@ -45,6 +48,8 @@ export function ViewToggle<T extends string>({
         backgroundColor: 'action.hover',
         borderRadius: '999px',
         p: '3px',
+        opacity: disabled ? 0.45 : 1,
+        transition: 'opacity 160ms',
         '& .MuiToggleButtonGroup-grouped': {
           border: 0,
           borderRadius: '999px !important',

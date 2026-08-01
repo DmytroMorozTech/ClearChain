@@ -6,11 +6,13 @@ export interface ChainViewState {
   open: string[];
   /** Pan and zoom, exactly as the reader left it. */
   viewport: Viewport | null;
+  /** Whether the map is filtered to non-compliant branches. */
+  onlyIssues: boolean;
 }
 
 const KEY = 'clearchain.chain-view';
 
-const FALLBACK: ChainViewState = { view: 'map', open: [], viewport: null };
+const FALLBACK: ChainViewState = { view: 'map', open: [], viewport: null, onlyIssues: false };
 
 /**
  * Where the chain screen remembers itself across a visit to a supplier.
@@ -50,6 +52,7 @@ export function readChainView(): ChainViewState | null {
         ? candidate.open.filter((id): id is string => typeof id === 'string')
         : [],
       viewport: isViewport(candidate.viewport) ? candidate.viewport : null,
+      onlyIssues: candidate.onlyIssues === true,
     };
   } catch {
     // Disabled storage or malformed JSON: the screen still works, it just forgets.

@@ -41,3 +41,43 @@ export function openIdsForDepth(tree: ChainTree, depth: number): Set<string> {
 export function sameIds(a: Set<string>, b: Set<string>): boolean {
   return a.size === b.size && [...a].every((id) => b.has(id));
 }
+
+export interface IssueView {
+  /** The suppliers that actually fail compliance. */
+  matches: Set<string>;
+  /** Those, plus every ancestor needed to reach them, plus the company. */
+  keep: Set<string>;
+}
+
+/**
+ * The non-compliant suppliers and the paths that lead to them.
+ *
+ * Ancestors are kept rather than dropped because the tree's only advantage over the
+ * supplier list is showing *where* a problem sits. Hiding a compliant parent would
+ * reattach its child to the company and misstate the chain.
+ *
+ * They are only a route, though — compliance in this domain is own-level and does not
+ * roll up, so an ancestor on the path has not failed anything. The caller draws them
+ * dimmed, which is what keeps "on the way to a problem" from reading as "is a problem".
+ */
+export function findIssues(tree: ChainTree): IssueView {
+  const parentOf = new Map<string, string>();
+  for (const [parent, children] of tree.childrenOf) {
+    for (const child of children) parentOf.set(child, parent);
+  }
+
+  const matches = new Set<string>();
+  for (const node of tree.byId.values()) {
+    if (node.isCompliant === false) matches.add(node.id);
+  }
+
+  const keep = new Set(matches);
+  for (const id of matches) {
+    for (let cursor = parentOf.get(id); cursor !== undefined; cursor = parentOf.get(cursor)) {
+      keep.add(cursor);
+    }
+  }
+  if (tree.rootId !== undefined) keep.add(tree.rootId);
+
+  return { matches, keep };
+}

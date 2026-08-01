@@ -1,11 +1,13 @@
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { List, Network } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -42,6 +44,11 @@ export function ChainPage() {
     patchChainView({ view: next });
   }, []);
 
+  // Lives on the page, not inside either view: it decides *what* is shown, while the
+  // Map/List toggle decides how. Held in one place, the two views cannot disagree.
+  const [onlyIssues, setOnlyIssues] = useState(restored?.onlyIssues ?? false);
+  const issueCount = data?.nodes.filter((node) => node.isCompliant === false).length ?? 0;
+
   if (isError) return <Alert severity="error">{error.message}</Alert>;
 
   return (
@@ -57,7 +64,45 @@ export function ChainPage() {
           </Typography>
         )}
         <Box sx={{ flexGrow: 1 }} />
-        <ViewToggle value={view} onChange={changeView} options={VIEW_OPTIONS} label="Chain view" />
+
+        {/* One surface for the controls that shape the view. Tinted with the brand
+            indigo rather than an arbitrary blue: the palette has no second hue, and a
+            new one would read as something bolted on. */}
+        <Paper
+          variant="outlined"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1.5,
+            py: 0.75,
+            px: 1.25,
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.05),
+            borderColor: (theme) => alpha(theme.palette.primary.main, 0.22),
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={onlyIssues}
+                onChange={(event) => {
+                  setOnlyIssues(event.target.checked);
+                  patchChainView({ onlyIssues: event.target.checked });
+                }}
+              />
+            }
+            label={`Only non-compliant (${String(issueCount)})`}
+            sx={{ m: 0, '& .MuiFormControlLabel-label': { fontSize: 14, fontWeight: 600 } }}
+          />
+
+          <ViewToggle
+            value={view}
+            onChange={changeView}
+            options={VIEW_OPTIONS}
+            label="Chain view"
+          />
+        </Paper>
       </Stack>
 
       {/* A legend is present because the map encodes risk; the nodes name their band
@@ -92,9 +137,9 @@ export function ChainPage() {
         {isPending ? (
           <Skeleton variant="rectangular" height={asList ? 360 : '100%'} />
         ) : asList ? (
-          <ChainList chain={data} />
+          <ChainList chain={data} onlyIssues={onlyIssues} />
         ) : (
-          <ChainFlow chain={data} compact={isMobile} />
+          <ChainFlow chain={data} compact={isMobile} onlyIssues={onlyIssues} />
         )}
       </Paper>
     </Stack>

@@ -6,10 +6,10 @@ import { useMemo } from 'react';
 import { Link as RouterLink } from 'react-router';
 
 import type { Chain, ChainNode } from '../api/schemas.ts';
-import { type ChainTree, buildChainTree } from '../chain.ts';
+import { type ChainTree, type IssueView, buildChainTree, findIssues } from '../chain.ts';
 import { RiskChip } from './RiskChip.tsx';
 
-function Row({ node }: { node: ChainNode }) {
+function Row({ node, dimmed }: { node: ChainNode; dimmed: boolean }) {
   if (node.type === 'company') {
     return (
       <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', py: 0.75 }}>
@@ -20,7 +20,7 @@ function Row({ node }: { node: ChainNode }) {
   }
 
   return (
-    <Box sx={{ py: 0.75 }}>
+    <Box sx={{ py: 0.75, opacity: dimmed ? 0.42 : 1, transition: 'opacity 220ms' }}>
       <Typography
         component={RouterLink}
         to={`/suppliers/${node.id}`}
@@ -48,19 +48,21 @@ function Row({ node }: { node: ChainNode }) {
   );
 }
 
-function Branch({ id, tree }: { id: string; tree: ChainTree }) {
+function Branch({ id, tree, issues }: { id: string; tree: ChainTree; issues: IssueView | null }) {
   const node = tree.byId.get(id);
   if (node === undefined) return null;
 
-  const children = tree.childrenOf.get(id) ?? [];
+  const all = tree.childrenOf.get(id) ?? [];
+  const children = issues === null ? all : all.filter((child) => issues.keep.has(child));
+  const dimmed = issues !== null && node.type !== 'company' && !issues.matches.has(id);
 
   return (
     <Box>
-      <Row node={node} />
+      <Row node={node} dimmed={dimmed} />
       {children.length > 0 && (
         <Stack sx={{ pl: 2, ml: 1, borderLeft: 1, borderColor: 'divider' }}>
           {children.map((childId) => (
-            <Branch key={childId} id={childId} tree={tree} />
+            <Branch key={childId} id={childId} tree={tree} issues={issues} />
           ))}
         </Stack>
       )}
@@ -72,14 +74,16 @@ function Branch({ id, tree }: { id: string; tree: ChainTree }) {
  * The chain as an indented tree — the same graph the map draws, in the shape a phone can
  * actually show. Forty nodes at 210px each is a canvas to be panned around, not read.
  */
-export function ChainList({ chain }: { chain: Chain }) {
+export function ChainList({ chain, onlyIssues = false }: { chain: Chain; onlyIssues?: boolean }) {
   const tree = useMemo(() => buildChainTree(chain), [chain]);
+  const allIssues = useMemo(() => findIssues(tree), [tree]);
+  const issues = onlyIssues ? allIssues : null;
 
   if (tree.rootId === undefined) return null;
 
   return (
     <Box sx={{ p: 2 }}>
-      <Branch id={tree.rootId} tree={tree} />
+      <Branch id={tree.rootId} tree={tree} issues={issues} />
     </Box>
   );
 }

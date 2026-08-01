@@ -30,7 +30,7 @@ import {
 import { useNavigate } from 'react-router';
 
 import type { Chain, ChainNode } from '../api/schemas.ts';
-import { type ChainTree, buildChainTree, openIdsForDepth, sameIds } from '../chain.ts';
+import { type ChainTree, buildChainTree, findIssues, openIdsForDepth, sameIds } from '../chain.ts';
 import { patchChainView, readChainView } from '../chainView.ts';
 import { RISK_COLORS, RISK_LABELS } from '../theme.ts';
 import { ViewToggle } from './ViewToggle.tsx';
@@ -38,7 +38,17 @@ import { ViewToggle } from './ViewToggle.tsx';
 const NODE_WIDTH = 196;
 const NODE_HEIGHT = 74;
 const H_GAP = 22;
+
+/**
+ * Row spacing is not the same at both node widths, because node *height* is not either.
+ * At 150px the risk line — "High risk · 77 · not compliant" — wraps to two lines and the
+ * box grows by about 16px. Left at the wide value, the gap between tiers drops to ~34px,
+ * which is too little for a smoothstep edge to travel down, across and down again: it
+ * flattens into a bar pressed against both boxes and stops reading as a connector.
+ */
 const ROW_GAP = 124;
+const COMPACT_ROW_GAP = 168;
+const COMPACT_NODE_WIDTH = 150;
 
 type FlowNodeData = ChainNode & Record<string, unknown>;
 
@@ -54,6 +64,10 @@ interface ChainContextValue {
   open: Set<string>;
   childCount: (id: string) => number;
   toggle: (id: string) => void;
+  /** True while the filter is on and this node is only a route to a finding. */
+  isDimmed: (id: string) => boolean;
+  /** The filter owns expansion while it is on, so the per-node control steps aside. */
+  filtering: boolean;
 }
 
 const ChainContext = createContext<ChainContextValue | null>(null);
@@ -70,13 +84,24 @@ function layoutTree(
   tree: ChainTree,
   open: Set<string>,
   nodeWidth: number,
+  rowGap: number,
+  keep: Set<string> | null,
 ): { nodes: Node<FlowNodeData>[]; edges: Edge[] } {
   const nodes: Node<FlowNodeData>[] = [];
   const edges: Edge[] = [];
   if (tree.rootId === undefined) return { nodes, edges };
 
   const spans = new Map<string, number>();
-  const childrenShown = (id: string) => (open.has(id) ? (tree.childrenOf.get(id) ?? []) : []);
+
+  // While filtering, `keep` decides what is drawn and every kept branch is open: the
+  // point of the filter is to reveal findings, so leaving them behind a collapsed parent
+  // would defeat it. `open` is untouched, so clearing the filter restores the reader's
+  // own expansion exactly.
+  const childrenShown = (id: string) => {
+    const children = tree.childrenOf.get(id) ?? [];
+    if (keep !== null) return children.filter((child) => keep.has(child));
+    return open.has(id) ? children : [];
+  };
 
   function span(id: string): number {
     const cached = spans.get(id);
@@ -103,7 +128,7 @@ function layoutTree(
     nodes.push({
       id,
       type: 'supply',
-      position: { x: left + span(id) / 2 - nodeWidth / 2, y: depth * ROW_GAP },
+      position: { x: left + span(id) / 2 - nodeWidth / 2, y: depth * rowGap },
       data: node as FlowNodeData,
       draggable: false,
       style: { width: nodeWidth },
@@ -116,7 +141,9 @@ function layoutTree(
         source: id,
         target: child,
         type: 'smoothstep',
-        style: { stroke: '#cbd5e1', strokeWidth: 1.5 },
+        // slate-400 rather than slate-300: at the zoom a whole tier is viewed from, the
+        // lighter grey dissolves into the dotted background.
+        style: { stroke: '#94a3b8', strokeWidth: 1.75 },
       });
       place(child, cursor, depth + 1);
       cursor += span(child) + H_GAP;
@@ -134,6 +161,8 @@ function SupplyNode({ id, data }: NodeProps<Node<FlowNodeData>>) {
 
   const count = context?.childCount(id) ?? 0;
   const isOpen = context?.open.has(id) ?? false;
+  const dimmed = context?.isDimmed(id) ?? false;
+  const showToggle = count > 0 && context?.filtering !== true;
 
   return (
     <Box
@@ -152,6 +181,8 @@ function SupplyNode({ id, data }: NodeProps<Node<FlowNodeData>>) {
         borderLeft: `4px solid ${color}`,
         boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
         cursor: isCompany ? 'default' : 'pointer',
+        opacity: dimmed ? 0.42 : 1,
+        transition: 'opacity 220ms',
       }}
     >
       {!isCompany && <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />}
@@ -194,7 +225,7 @@ function SupplyNode({ id, data }: NodeProps<Node<FlowNodeData>>) {
 
       {/* Hangs off the bottom edge, where the children it reveals will appear. The count
           is what makes a collapsed branch honest about how much it is hiding. */}
-      {count > 0 && (
+      {showToggle && (
         <ButtonBase
           onClick={(event) => {
             event.stopPropagation();
@@ -276,10 +307,20 @@ function ViewportKeeper({ signal, restored }: { signal: number; restored: Viewpo
   return null;
 }
 
-export function ChainFlow({ chain, compact = false }: { chain: Chain; compact?: boolean }) {
+export function ChainFlow({
+  chain,
+  compact = false,
+  onlyIssues = false,
+}: {
+  chain: Chain;
+  compact?: boolean;
+  /** Owned by the page, so the map and the list always agree on what is being shown. */
+  onlyIssues?: boolean;
+}) {
   const navigate = useNavigate();
   const tree = useMemo(() => buildChainTree(chain), [chain]);
-  const nodeWidth = compact ? 150 : NODE_WIDTH;
+  const nodeWidth = compact ? COMPACT_NODE_WIDTH : NODE_WIDTH;
+  const rowGap = compact ? COMPACT_ROW_GAP : ROW_GAP;
 
   // Read once, on mount: this is what the reader left behind before opening a supplier.
   const restored = useMemo(() => readChainView(), []);
@@ -297,9 +338,12 @@ export function ChainFlow({ chain, compact = false }: { chain: Chain; compact?: 
     patchChainView({ open: [...open] });
   }, [open]);
 
+  const issues = useMemo(() => findIssues(tree), [tree]);
+  const keep = onlyIssues ? issues.keep : null;
+
   const { nodes, edges } = useMemo(
-    () => layoutTree(tree, open, nodeWidth),
-    [tree, open, nodeWidth],
+    () => layoutTree(tree, open, nodeWidth, rowGap, keep),
+    [tree, open, nodeWidth, rowGap, keep],
   );
 
   const toggle = useCallback((id: string) => {
@@ -316,7 +360,15 @@ export function ChainFlow({ chain, compact = false }: { chain: Chain; compact?: 
     [tree.childrenOf],
   );
 
-  const context = useMemo(() => ({ open, childCount, toggle }), [open, childCount, toggle]);
+  const isDimmed = useCallback(
+    (id: string) => onlyIssues && tree.byId.get(id)?.type !== 'company' && !issues.matches.has(id),
+    [onlyIssues, issues, tree],
+  );
+
+  const context = useMemo(
+    () => ({ open, childCount, toggle, isDimmed, filtering: onlyIssues }),
+    [open, childCount, toggle, isDimmed, onlyIssues],
+  );
 
   // Selects nothing once the reader has opened branches by hand, rather than claiming a
   // tier is fully shown when only part of it is.
@@ -368,6 +420,9 @@ export function ChainFlow({ chain, compact = false }: { chain: Chain; compact?: 
           <ViewportKeeper signal={nodes.length} restored={restored?.viewport ?? null} />
 
           <Panel position="top-left">
+            {/* Disabled while filtering rather than hidden: the filter decides depth for
+                as long as it is on, and a control that silently does nothing is worse
+                than one that says so. */}
             <ViewToggle
               value={depth}
               onChange={(next) => {
@@ -375,6 +430,7 @@ export function ChainFlow({ chain, compact = false }: { chain: Chain; compact?: 
               }}
               options={DEPTH_OPTIONS}
               label="Tiers shown"
+              disabled={onlyIssues}
             />
           </Panel>
 
