@@ -29,8 +29,8 @@ const STATUS_ICONS: Record<Status, LucideIcon> = {
 
 const SR_ONLY = {
   position: 'absolute',
-  width: 1,
-  height: 1,
+  width: '1px',
+  height: '1px',
   overflow: 'hidden',
   clipPath: 'inset(50%)',
   whiteSpace: 'nowrap',
