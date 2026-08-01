@@ -19,6 +19,8 @@ import {
   YAxis,
 } from 'recharts';
 
+import { InfoNote } from './InfoNote.tsx';
+
 export interface DistributionDatum {
   key: string;
   label: string;
@@ -30,22 +32,24 @@ interface DistributionChartProps {
   title: string;
   data: readonly DistributionDatum[];
   total: number;
-  /** Read aloud in place of the chart; also the tooltip-free path to the numbers. */
+  /** Read aloud in place of the chart, so it has to carry every value. Never shown. */
   summary: string;
+  /** Visible caption. Says how to read the distribution; never restates its numbers. */
+  note: string;
 }
 
 /**
  * Horizontal bars, one measure, one axis.
  *
- * A pie was rejected: three slices compare badly and part-to-whole is already carried
- * by the "of N" caption. Every bar is labelled with its value — partly because three
+ * A pie was rejected: three slices compare badly, and part-to-whole is already carried
+ * by the table view's share column. Every bar is labelled with its value — partly because three
  * labels are not clutter, and partly because the amber fill sits at 1.87:1 against a
  * light surface, which obliges visible labels rather than colour alone.
  *
  * The table view is the WCAG-clean twin: keyboard reachable, screen-reader legible, and
  * the place every value stays available when the tooltip is not.
  */
-export function DistributionChart({ title, data, total, summary }: DistributionChartProps) {
+export function DistributionChart({ title, data, total, summary, note }: DistributionChartProps) {
   const [asTable, setAsTable] = useState(false);
   const max = Math.max(...data.map((datum) => datum.count), 1);
 
@@ -127,9 +131,7 @@ export function DistributionChart({ title, data, total, summary }: DistributionC
         </Box>
       )}
 
-      <Typography variant="caption" color="text.secondary">
-        {summary}
-      </Typography>
+      <InfoNote>{note}</InfoNote>
     </Stack>
   );
 }

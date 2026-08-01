@@ -120,6 +120,7 @@ export function DashboardPage() {
               data={riskData}
               total={data.suppliers.total}
               summary={`${String(data.suppliers.total)} suppliers by risk band: ${riskSummary}.`}
+              note="Score combines country, certificate gaps, tier depth, and upstream risk."
             />
           </Suspense>
         </Paper>
@@ -130,9 +131,10 @@ export function DashboardPage() {
               title="Suppliers by tier"
               data={tierData}
               total={data.suppliers.total}
-              summary={`Tier 1 is a direct supplier, tier 3 a raw-material source. ${tierData
+              summary={`${String(data.suppliers.total)} suppliers by tier: ${tierData
                 .map((datum) => `${datum.label.toLowerCase()} ${String(datum.count)}`)
                 .join(', ')}.`}
+              note="Tier 1 supplies you directly, tier 2 supplies them, tier 3 provides raw materials."
             />
           </Suspense>
         </Paper>

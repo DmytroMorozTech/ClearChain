@@ -7,7 +7,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { Upload } from 'lucide-react';
@@ -17,6 +16,7 @@ import { ApiError } from '../api/client.ts';
 import { useUploadCertificate } from '../api/queries.ts';
 import type { CertificateType } from '../api/schemas.ts';
 import { CERTIFICATE_LABELS } from '../format.ts';
+import { InfoNote } from './InfoNote.tsx';
 
 const TYPES = Object.keys(CERTIFICATE_LABELS) as CertificateType[];
 
@@ -157,10 +157,10 @@ export function CertificateUploadDialog({
               />
             </Button>
 
-            <Typography variant="caption" color="text.secondary">
+            <InfoNote>
               An expiry date in the past is accepted — it is filed as a historical record and shown
               as expired.
-            </Typography>
+            </InfoNote>
           </Stack>
         </DialogContent>
 
