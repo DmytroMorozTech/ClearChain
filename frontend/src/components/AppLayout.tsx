@@ -12,33 +12,10 @@ import { useTheme } from '@mui/material/styles';
 import { LogOut, ShieldCheck } from 'lucide-react';
 import { NavLink, Outlet, Link as RouterLink } from 'react-router';
 
-import { useHealth, useLogout, useSession } from '../api/queries.ts';
+import { useLogout, useSession } from '../api/queries.ts';
 import { NAV_ITEMS } from '../nav.ts';
 import { MOBILE_BREAKPOINT } from '../theme.ts';
 import { BOTTOM_NAV_HEIGHT, MobileNav } from './MobileNav.tsx';
-
-function HealthDot() {
-  const { data, isError } = useHealth();
-  const down = isError || data?.db === 'down';
-
-  return (
-    <Tooltip
-      title={down ? 'API unreachable or database down' : `API healthy · v${data?.version ?? '?'}`}
-    >
-      <Box
-        component="span"
-        aria-label={down ? 'API unhealthy' : 'API healthy'}
-        sx={{
-          width: 9,
-          height: 9,
-          borderRadius: '50%',
-          flexShrink: 0,
-          backgroundColor: down ? '#DC2626' : '#16A34A',
-        }}
-      />
-    </Tooltip>
-  );
-}
 
 function SessionControl() {
   const session = useSession();
@@ -143,7 +120,6 @@ export function AppLayout() {
             </Stack>
           )}
 
-          <HealthDot />
           <SessionControl />
         </Toolbar>
       </AppBar>

@@ -6,7 +6,6 @@ import {
   chainSchema,
   countryOptionSchema,
   dashboardSchema,
-  healthSchema,
   paginated,
   sessionSchema,
   supplierDetailSchema,
@@ -24,7 +23,6 @@ import { z } from 'zod';
  */
 export const queryKeys = {
   session: ['session'] as const,
-  health: ['health'] as const,
   dashboard: ['dashboard'] as const,
   chain: ['chain'] as const,
   suppliers: (params: SupplierListParams) => ['suppliers', params] as const,
@@ -112,13 +110,6 @@ export const useLogout = () => {
     },
   });
 };
-
-export const useHealth = () =>
-  useQuery({
-    queryKey: queryKeys.health,
-    queryFn: ({ signal }) => api.get('/health', healthSchema, signal),
-    refetchInterval: 30_000,
-  });
 
 export const useDashboard = () =>
   useQuery({
