@@ -92,13 +92,28 @@ export function DistributionChart({ title, data, total, summary, note }: Distrib
           </TableBody>
         </Table>
       ) : (
-        <Box role="img" aria-label={summary} sx={{ width: '100%', height: 190 }}>
+        <Box
+          role="img"
+          aria-label={summary}
+          sx={{
+            width: '100%',
+            height: 190,
+            /* Recharts stamps `tabindex="-1"` on every z-index layer, so a tap focuses
+               the group and the browser rings its bounding box. Only pointer focus is
+               dropped — nothing here is tab-reachable, so no real indicator is lost. */
+            '& :focus:not(:focus-visible)': { outline: 'none' },
+          }}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={[...data]}
               layout="vertical"
               margin={{ top: 4, right: 34, bottom: 4, left: 4 }}
               barCategoryGap={10}
+              /* On by default, and it marks the chart's own `<svg>` `role="application"`
+                 with `tabindex="0"` — an interactive widget inside the `role="img"`
+                 above, announcing itself as two contradictory things. */
+              accessibilityLayer={false}
             >
               <XAxis type="number" domain={[0, max]} hide />
               <YAxis
