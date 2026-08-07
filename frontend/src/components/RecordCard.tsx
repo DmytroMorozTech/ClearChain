@@ -1,3 +1,4 @@
+import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -31,19 +32,19 @@ type RecordCardProps = {
  */
 export function RecordCard({ title, meta, chips, to, action }: RecordCardProps) {
   const body = (
-    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
-      {/* `minWidth: 0` lets long supplier names ellipsize instead of forcing the row
-          wider than the card. */}
-      <Stack spacing={0.5} sx={{ minWidth: 0, flexGrow: 1 }}>
-        <Typography sx={{ fontWeight: 650, lineHeight: 1.3 }}>{title}</Typography>
-        {meta}
-        {chips && (
-          <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75, pt: 0.5 }}>
-            {chips}
-          </Stack>
-        )}
+    <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+        <Typography sx={{ fontWeight: 650, lineHeight: 1.3, minWidth: 0, flexGrow: 1 }}>
+          {title}
+        </Typography>
+        {action && <Box sx={{ flexShrink: 0, my: -0.5 }}>{action}</Box>}
       </Stack>
-      {action}
+      {meta}
+      {chips && (
+        <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75, pt: 0.5 }}>
+          {chips}
+        </Stack>
+      )}
     </Stack>
   );
 
