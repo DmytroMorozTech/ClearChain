@@ -61,9 +61,17 @@ export function CertificateStatusChip({
     color,
     backgroundColor: status === 'MISSING' ? 'transparent' : `${color}14`,
     border: `1px solid ${color}${status === 'MISSING' ? '99' : '55'}`,
+    // The label is the flex container itself. Nesting one inside it instead leaves an
+    // inline-level box sitting on the label's baseline — and a flex container takes its
+    // baseline from the first item, the icon, not from the word beside it.
+    '& .MuiChip-label': {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 0.5,
+      ...(iconOnly && { px: 0 }),
+    },
     ...(iconOnly && {
       '&.MuiChip-sizeSmall': { paddingLeft: '6px', paddingRight: '6px' },
-      '& .MuiChip-label': { px: 0, display: 'flex', alignItems: 'center' },
     }),
   };
 
@@ -92,10 +100,10 @@ export function CertificateStatusChip({
       size={size}
       variant={status === 'MISSING' ? 'outlined' : 'filled'}
       label={
-        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+        <>
           <Icon size={glyph} aria-hidden />
           {label}
-        </Box>
+        </>
       }
       sx={sx}
     />
