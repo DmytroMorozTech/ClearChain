@@ -1,3 +1,4 @@
+import '@fontsource-variable/inter';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';

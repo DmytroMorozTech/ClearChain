@@ -50,7 +50,7 @@ export const theme = createTheme({
   shape: { borderRadius: 10 },
   typography: {
     fontFamily:
-      '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      '"Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     // Typography variants are plain style objects, so the breakpoint is written out
     // rather than read from `theme.breakpoints`. It is the `md` value above.
     h1: {
