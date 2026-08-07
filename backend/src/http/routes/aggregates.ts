@@ -21,10 +21,25 @@ aggregatesRouter.get('/chain', async (_req, res) => {
  * Reference data. The country table is exposed rather than hidden because it is an
  * input to the risk score — a user who wants to know why a supplier scores what it does
  * can look up the country's base score instead of taking it on faith.
+ *
+ * `supplierCount` lets a filter control skip the countries holding nobody, without the
+ * route having to narrow what it returns.
  */
 aggregatesRouter.get('/reference/countries', async (_req, res) => {
-  const countries = await prisma.countryRisk.findMany({ orderBy: { name: 'asc' } });
-  res.json({ data: countries });
+  const [countries, counts] = await Promise.all([
+    prisma.countryRisk.findMany({ orderBy: { name: 'asc' } }),
+    // No `isActive` filter, matching the supplier list this count describes.
+    prisma.supplier.groupBy({ by: ['countryCode'], _count: { _all: true } }),
+  ]);
+
+  const countByCode = new Map(counts.map((row) => [row.countryCode, row._count._all]));
+
+  res.json({
+    data: countries.map((country) => ({
+      ...country,
+      supplierCount: countByCode.get(country.code) ?? 0,
+    })),
+  });
 });
 
 aggregatesRouter.get('/reference/certificate-types', (_req, res) => {

@@ -239,6 +239,24 @@ describe('reference data', () => {
     expect(germany).toMatchObject({ band: 'LOW', baseScore: 5 });
   });
 
+  it('counts the suppliers in each country without dropping the empty ones', async () => {
+    await makeSupplier('Alpha Werke', 'DE', 'MANUFACTURING');
+    await makeSupplier('Delta Logistik', 'DE', 'LOGISTICS');
+
+    const response = await api.get('/api/reference/countries');
+    const byCode = new Map(
+      response.body.data.map((entry: { code: string; supplierCount: number }) => [
+        entry.code,
+        entry.supplierCount,
+      ]),
+    );
+
+    expect(byCode.get('DE')).toBe(2);
+    // Reported as empty rather than omitted — the route answers which countries the
+    // score knows about, and a filter control is only one of its readers.
+    expect(byCode.get('TR')).toBe(0);
+  });
+
   it('states which categories require each certificate type', async () => {
     const response = await api.get('/api/reference/certificate-types');
     const byType = new Map(

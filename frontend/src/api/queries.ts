@@ -4,7 +4,7 @@ import { ApiError, api, toQuery } from './client.ts';
 import {
   certificateWithSupplierSchema,
   chainSchema,
-  countrySchema,
+  countryOptionSchema,
   dashboardSchema,
   healthSchema,
   paginated,
@@ -170,8 +170,11 @@ export const useCountries = () =>
   useQuery({
     queryKey: queryKeys.countries,
     queryFn: ({ signal }) =>
-      api.get('/reference/countries', z.object({ data: z.array(countrySchema) }), signal),
-    staleTime: Infinity, // Reference data; it does not change while the app is open.
+      api.get('/reference/countries', z.object({ data: z.array(countryOptionSchema) }), signal),
+    // The risk table itself is fixed, but the supplier counts riding with it are not: a
+    // sync can land the first supplier in a country and add an option to the filter.
+    // Refetching is left to the blanket invalidation a sync already performs.
+    staleTime: Infinity,
   });
 
 /** Everything a sync touches: suppliers, the chain, every aggregate, and the log. */

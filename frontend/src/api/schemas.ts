@@ -36,6 +36,15 @@ export const countrySchema = z.object({
   baseScore: z.number(),
 });
 
+/**
+ * The reference route's richer shape. Kept apart from `countrySchema` because that one
+ * is also the country embedded in every supplier, which arrives straight from the table
+ * and carries no count.
+ */
+export const countryOptionSchema = countrySchema.extend({
+  supplierCount: z.number(),
+});
+
 export const riskFactorSchema = z.object({
   code: z.string(),
   label: z.string(),
@@ -199,6 +208,7 @@ export const healthSchema = z.object({
 export type Session = z.infer<typeof sessionSchema>;
 export type Health = z.infer<typeof healthSchema>;
 export type Country = z.infer<typeof countrySchema>;
+export type CountryOption = z.infer<typeof countryOptionSchema>;
 export type Risk = z.infer<typeof riskSchema>;
 export type Requirement = z.infer<typeof requirementSchema>;
 export type Certificate = z.infer<typeof certificateSchema>;

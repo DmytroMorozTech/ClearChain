@@ -104,6 +104,15 @@ export function SuppliersPage() {
 
   const activeFilters = FILTER_KEYS.filter((key) => params.get(key)).length;
 
+  // Most of the risk table holds no suppliers, and offering those countries is offering
+  // an empty result. The one already selected stays regardless: a filtered view is a
+  // shareable link, and a link outliving the last supplier in its country would
+  // otherwise open with the control blank and no hint of what is filtering the page.
+  const selectedCountry = params.get('countryCode') ?? '';
+  const countryOptions = (countries.data?.data ?? []).filter(
+    (country) => country.supplierCount > 0 || country.code === selectedCountry,
+  );
+
   return (
     <Stack spacing={2.5}>
       <Stack spacing={0.75}>
@@ -177,7 +186,7 @@ export function SuppliersPage() {
             }}
           >
             <MenuItem value="">All countries</MenuItem>
-            {(countries.data?.data ?? []).map((country) => (
+            {countryOptions.map((country) => (
               <MenuItem key={country.code} value={country.code}>
                 {country.name}
               </MenuItem>
