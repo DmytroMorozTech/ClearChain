@@ -294,6 +294,30 @@ describe('GET /api/suppliers', () => {
     expect(response.body.data[0].name).toBe('B');
   });
 
+  it('counts each filter value against the filters other than its own', async () => {
+    await createChain();
+
+    const response = await api.get('/api/suppliers?countryCode=DE');
+
+    expect(response.body.total).toBe(2); // A and D
+    expect(response.body.facets.tier).toEqual({ '1': 2 });
+    expect(response.body.facets.category).toEqual({ MANUFACTURING: 1, LOGISTICS: 1 });
+    // C is raw material but sits in Bangladesh, so the value drops out entirely rather
+    // than being reported as zero.
+    expect(response.body.facets.category.RAW_MATERIAL).toBeUndefined();
+  });
+
+  it('counts a dimension with its own filter lifted, so its other values stay reachable', async () => {
+    await createChain();
+
+    const response = await api.get('/api/suppliers?countryCode=DE');
+
+    // Every country, not only the selected one. Counted against itself this would read
+    // `{ DE: 2 }`, and a user who picked Germany could never see that Türkiye is an
+    // option without clearing the filter first.
+    expect(response.body.facets.countryCode).toEqual({ DE: 2, TR: 1, BD: 1 });
+  });
+
   it('rejects an unsupported sort key', async () => {
     const response = await api.get('/api/suppliers?sort=secret:asc');
 

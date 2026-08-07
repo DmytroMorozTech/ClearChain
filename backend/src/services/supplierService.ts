@@ -99,6 +99,105 @@ export interface Pagination {
   pageSize: number;
 }
 
+/**
+ * How many suppliers each filter value would leave, so a filter control can say so
+ * before the user spends a click finding out.
+ *
+ * Keyed by the value as it travels in the query string, which is what the caller has in
+ * hand when it labels an option.
+ */
+export interface SupplierFacets {
+  tier: Record<string, number>;
+  riskLevel: Record<string, number>;
+  countryCode: Record<string, number>;
+  category: Record<string, number>;
+  compliant: Record<string, number>;
+}
+
+/** The dimensions counted above; each is also a key of `SupplierFilters`. */
+const FACET_DIMENSIONS = [
+  'tier',
+  'riskLevel',
+  'countryCode',
+  'category',
+  'compliant',
+] as const satisfies readonly (keyof SupplierFilters)[];
+
+/** The part of an enriched row the filters actually read. */
+interface FilterableRow {
+  supplier: {
+    name: string;
+    tier: number;
+    countryCode: string;
+    category: SupplierCategory;
+    isActive: boolean;
+  };
+  risk: { level: RiskLevel } | undefined;
+  compliant: boolean;
+}
+
+/**
+ * Built once per filter set rather than evaluated per row, so the search term is folded
+ * to lower case once instead of on every comparison.
+ */
+function predicateFor(filters: SupplierFilters): (row: FilterableRow) => boolean {
+  const search = filters.search?.trim().toLowerCase();
+
+  return (row) => {
+    if (search && !row.supplier.name.toLowerCase().includes(search)) return false;
+    if (filters.tier !== undefined && row.supplier.tier !== filters.tier) return false;
+    if (filters.countryCode && row.supplier.countryCode !== filters.countryCode) return false;
+    if (filters.category && row.supplier.category !== filters.category) return false;
+    if (filters.isActive !== undefined && row.supplier.isActive !== filters.isActive) return false;
+    if (filters.riskLevel && row.risk?.level !== filters.riskLevel) return false;
+    if (filters.compliant !== undefined && row.compliant !== filters.compliant) return false;
+    return true;
+  };
+}
+
+/** Where each dimension's value lives on a row, in the spelling the query string uses. */
+const FACET_VALUE: Record<
+  (typeof FACET_DIMENSIONS)[number],
+  (row: FilterableRow) => string | undefined
+> = {
+  tier: (row) => String(row.supplier.tier),
+  riskLevel: (row) => row.risk?.level,
+  countryCode: (row) => row.supplier.countryCode,
+  category: (row) => row.supplier.category,
+  compliant: (row) => String(row.compliant),
+};
+
+/**
+ * Every dimension is counted against the other filters but never against its own.
+ *
+ * Counting a dimension against itself would leave each control showing only the value
+ * already chosen — "Low risk" selected, "Low" the sole remaining option — and the user
+ * could never move sideways to Medium without clearing the filter first.
+ */
+function countFacets(rows: readonly FilterableRow[], filters: SupplierFilters): SupplierFacets {
+  const facets: SupplierFacets = {
+    tier: {},
+    riskLevel: {},
+    countryCode: {},
+    category: {},
+    compliant: {},
+  };
+
+  for (const dimension of FACET_DIMENSIONS) {
+    const keep = predicateFor({ ...filters, [dimension]: undefined });
+    const counts = facets[dimension];
+
+    for (const row of rows) {
+      if (!keep(row)) continue;
+      const value = FACET_VALUE[dimension](row);
+      if (value === undefined) continue;
+      counts[value] = (counts[value] ?? 0) + 1;
+    }
+  }
+
+  return facets;
+}
+
 export async function listSuppliers(
   filters: SupplierFilters,
   sort: SupplierSort,
@@ -124,17 +223,7 @@ export async function listSuppliers(
     };
   });
 
-  const search = filters.search?.trim().toLowerCase();
-  const matched = enriched.filter((row) => {
-    if (search && !row.supplier.name.toLowerCase().includes(search)) return false;
-    if (filters.tier !== undefined && row.supplier.tier !== filters.tier) return false;
-    if (filters.countryCode && row.supplier.countryCode !== filters.countryCode) return false;
-    if (filters.category && row.supplier.category !== filters.category) return false;
-    if (filters.isActive !== undefined && row.supplier.isActive !== filters.isActive) return false;
-    if (filters.riskLevel && row.risk?.level !== filters.riskLevel) return false;
-    if (filters.compliant !== undefined && row.compliant !== filters.compliant) return false;
-    return true;
-  });
+  const matched = enriched.filter(predicateFor(filters));
 
   const sorted = [...matched].sort((a, b) => {
     const factor = sort.direction === 'asc' ? 1 : -1;
@@ -156,6 +245,9 @@ export async function listSuppliers(
   return {
     rows: sorted.slice(start, start + pagination.pageSize),
     total: sorted.length,
+    // Over `enriched`, not `matched`: a facet has to see the rows its own filter is
+    // hiding, which is the whole point of lifting that filter.
+    facets: countFacets(enriched, filters),
   };
 }
 

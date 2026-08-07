@@ -10,7 +10,7 @@ import {
   paginated,
   sessionSchema,
   supplierDetailSchema,
-  supplierSummarySchema,
+  supplierListSchema,
   type Session,
   syncLogSchema,
   syncOutcomeSchema,
@@ -136,7 +136,7 @@ export const useSuppliers = (params: SupplierListParams) =>
   useQuery({
     queryKey: queryKeys.suppliers(params),
     queryFn: ({ signal }) =>
-      api.get(`/suppliers${toQuery({ ...params })}`, paginated(supplierSummarySchema), signal),
+      api.get(`/suppliers${toQuery({ ...params })}`, supplierListSchema, signal),
     placeholderData: (previous) => previous,
   });
 

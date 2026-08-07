@@ -44,7 +44,7 @@ suppliersRouter.get('/', async (req, res) => {
     'asc' | 'desc',
   ];
 
-  const { rows, total } = await listSuppliers(
+  const { rows, total, facets } = await listSuppliers(
     {
       search: query.search,
       tier: query.tier,
@@ -64,6 +64,7 @@ suppliersRouter.get('/', async (req, res) => {
     page: query.page,
     pageSize: query.pageSize,
     total,
+    facets,
   });
 });
 

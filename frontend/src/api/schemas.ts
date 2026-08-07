@@ -123,6 +123,22 @@ export function paginated<T extends z.ZodType>(item: T) {
   });
 }
 
+/**
+ * How many suppliers each filter value would leave, counted against every other filter
+ * but not against its own. Absent keys are absent because nothing matches them.
+ */
+const facetCountsSchema = z.record(z.string(), z.number());
+
+export const supplierListSchema = paginated(supplierSummarySchema).extend({
+  facets: z.object({
+    tier: facetCountsSchema,
+    riskLevel: facetCountsSchema,
+    countryCode: facetCountsSchema,
+    category: facetCountsSchema,
+    compliant: facetCountsSchema,
+  }),
+});
+
 export const syncLogSchema = z.object({
   id: z.string(),
   source: z.string(),

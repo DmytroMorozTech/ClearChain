@@ -56,6 +56,27 @@ const FILTER_KEYS = [
 ] as const;
 
 /**
+ * How many suppliers an option would leave, appended to its own label.
+ *
+ * Every option keeps its place, a zero included: that a combination is empty is itself
+ * the answer a compliance screen is read for, and removing the option would delete the
+ * finding along with the dead end. The count is what turns a wasted click into a fact
+ * read in passing.
+ *
+ * A key missing from the facet map means nothing matches it, which is a zero.
+ */
+function withCount(label: string, count: number | undefined) {
+  return (
+    <>
+      {label}{' '}
+      <Typography component="span" variant="caption" color="text.secondary">
+        ({count ?? 0})
+      </Typography>
+    </>
+  );
+}
+
+/**
  * Filters live in the URL rather than in component state.
  *
  * A filtered view is then a link: it survives a reload, works with the back button, and
@@ -113,6 +134,10 @@ export function SuppliersPage() {
     (country) => country.supplierCount > 0 || country.code === selectedCountry,
   );
 
+  // Counted against every filter but their own, so a control always offers a way out of
+  // the value it is currently holding.
+  const facets = data?.facets;
+
   return (
     <Stack spacing={2.5}>
       <Stack spacing={0.75}>
@@ -158,9 +183,9 @@ export function SuppliersPage() {
             }}
           >
             <MenuItem value="">All tiers</MenuItem>
-            <MenuItem value="1">Tier 1 — direct</MenuItem>
-            <MenuItem value="2">Tier 2 — sub-supplier</MenuItem>
-            <MenuItem value="3">Tier 3 — raw material</MenuItem>
+            <MenuItem value="1">{withCount('Tier 1 — direct', facets?.tier['1'])}</MenuItem>
+            <MenuItem value="2">{withCount('Tier 2 — sub-supplier', facets?.tier['2'])}</MenuItem>
+            <MenuItem value="3">{withCount('Tier 3 — raw material', facets?.tier['3'])}</MenuItem>
           </TextField>
           <TextField
             select
@@ -172,9 +197,9 @@ export function SuppliersPage() {
             }}
           >
             <MenuItem value="">Any risk</MenuItem>
-            <MenuItem value="GREEN">Low</MenuItem>
-            <MenuItem value="YELLOW">Medium</MenuItem>
-            <MenuItem value="RED">High</MenuItem>
+            <MenuItem value="GREEN">{withCount('Low', facets?.riskLevel.GREEN)}</MenuItem>
+            <MenuItem value="YELLOW">{withCount('Medium', facets?.riskLevel.YELLOW)}</MenuItem>
+            <MenuItem value="RED">{withCount('High', facets?.riskLevel.RED)}</MenuItem>
           </TextField>
           <TextField
             select
@@ -188,7 +213,7 @@ export function SuppliersPage() {
             <MenuItem value="">All countries</MenuItem>
             {countryOptions.map((country) => (
               <MenuItem key={country.code} value={country.code}>
-                {country.name}
+                {withCount(country.name, facets?.countryCode[country.code])}
               </MenuItem>
             ))}
           </TextField>
@@ -204,7 +229,7 @@ export function SuppliersPage() {
             <MenuItem value="">All categories</MenuItem>
             {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
               <MenuItem key={value} value={value}>
-                {label}
+                {withCount(label, facets?.category[value])}
               </MenuItem>
             ))}
           </TextField>
@@ -218,8 +243,8 @@ export function SuppliersPage() {
             }}
           >
             <MenuItem value="">Any</MenuItem>
-            <MenuItem value="true">Compliant</MenuItem>
-            <MenuItem value="false">Not compliant</MenuItem>
+            <MenuItem value="true">{withCount('Compliant', facets?.compliant.true)}</MenuItem>
+            <MenuItem value="false">{withCount('Not compliant', facets?.compliant.false)}</MenuItem>
           </TextField>
         </Box>
       </FilterBar>
