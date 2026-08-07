@@ -24,7 +24,7 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router';
 
 import { fileUrl } from '../api/client.ts';
 import { useDeleteCertificate, useSupplier } from '../api/queries.ts';
-import type { SupplierDetail } from '../api/schemas.ts';
+import type { Requirement, SupplierDetail } from '../api/schemas.ts';
 import { CertificateStatusChip } from '../components/CertificateStatusChip.tsx';
 import { CertificateUploadDialog } from '../components/CertificateUploadDialog.tsx';
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx';
@@ -55,6 +55,50 @@ function Field({ label, value, wide }: { label: string; value: ReactNode; wide?:
       {/* `anywhere` rather than `break-word`: the latter still refuses to split a single
           long token, which is exactly what an email address is. */}
       <Typography sx={{ fontWeight: 500, overflowWrap: 'anywhere' }}>{value}</Typography>
+    </Box>
+  );
+}
+
+/**
+ * Requirements reported by exception: badging the satisfied ones too would only repeat
+ * the certificate list below, and bury the one badge worth reading among green ticks.
+ */
+function RequirementSummary({ requirements }: { requirements: readonly Requirement[] }) {
+  const outstanding = requirements.filter((requirement) => requirement.status !== 'VALID');
+
+  if (outstanding.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        All {requirements.length} on file and valid.
+      </Typography>
+    );
+  }
+
+  return (
+    <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+      {outstanding.map((requirement) => (
+        <Chip
+          key={requirement.type}
+          size="small"
+          variant="outlined"
+          label={
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+              <span>{CERTIFICATE_LABELS[requirement.type]}</span>
+              {/* Spelled out rather than `iconOnly`. The grid could afford a bare glyph
+                  because a green tick beside every type needed no elaboration; a badge
+                  that only ever appears to report a problem has to name the problem. */}
+              <CertificateStatusChip status={requirement.status} />
+              {/* Null for a certificate never held — there is no date to count towards. */}
+              {requirement.daysUntilExpiry !== null && (
+                <Typography variant="caption" color="text.secondary">
+                  {formatCountdown(requirement.daysUntilExpiry)}
+                </Typography>
+              )}
+            </Stack>
+          }
+          sx={{ height: 'auto', py: 0.5, '& .MuiChip-label': { px: 1 } }}
+        />
+      ))}
     </Box>
   );
 }
@@ -221,40 +265,7 @@ export function SupplierDetailPage() {
             </Typography>
 
             {/* Requirements first: what is missing matters more than what is filed. */}
-            {/* Equal tracks in a `max-content` container: `1fr` resolves every track to
-                the same size, and the container hugs the widest, so each badge ends up
-                as wide as the largest one. */}
-            <Box
-              sx={{
-                mt: 2,
-                display: 'grid',
-                gap: 1,
-                width: 'max-content',
-                maxWidth: '100%',
-                gridAutoFlow: { xs: 'row', sm: 'column' },
-                gridAutoColumns: { sm: '1fr' },
-              }}
-            >
-              {data.requirements.map((requirement) => (
-                <Chip
-                  key={requirement.type}
-                  size="small"
-                  variant="outlined"
-                  label={
-                    <Stack
-                      direction="row"
-                      spacing={0.75}
-                      sx={{ alignItems: 'center', justifyContent: 'space-between' }}
-                    >
-                      <span>{CERTIFICATE_LABELS[requirement.type]}</span>
-                      <CertificateStatusChip status={requirement.status} iconOnly />
-                    </Stack>
-                  }
-                  // The label has to grow for the badge to use the width it was given.
-                  sx={{ height: 'auto', py: 0.5, '& .MuiChip-label': { px: 1, flexGrow: 1 } }}
-                />
-              ))}
-            </Box>
+            <RequirementSummary requirements={data.requirements} />
 
             <Divider sx={{ my: 2 }} />
 
