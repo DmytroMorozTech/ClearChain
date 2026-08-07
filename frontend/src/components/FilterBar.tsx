@@ -100,16 +100,13 @@ export function FilterBar({ filterKeys, children }: FilterBarProps) {
           </Typography>
         )}
 
-        {/* Rendered even with nothing to clear, and disabled instead of hidden: the row
-            keeps its height, so applying a filter does not shift the controls below. */}
-        <Button
-          size="small"
-          startIcon={<FilterX size={15} />}
-          onClick={clearAll}
-          disabled={activeCount === 0}
-        >
-          {isMobile ? 'Clear' : 'Clear all filters'}
-        </Button>
+        {/* Only when there is something to clear. Disabled would have been a control that
+            does nothing, restating what the header beside it already says. */}
+        {activeCount > 0 && (
+          <Button size="small" startIcon={<FilterX size={15} />} onClick={clearAll}>
+            {isMobile ? 'Clear' : 'Clear all filters'}
+          </Button>
+        )}
       </Stack>
 
       {/* The gap belongs to the controls, not the header — left on the header it would
