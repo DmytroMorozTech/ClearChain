@@ -292,10 +292,15 @@ const nodeTypes = { supply: SupplyNode };
  * "first run" flag. A flag does not survive StrictMode: it is spent on the first pass,
  * and the second pass refits away the viewport being restored.
  *
+ * `signal` must only change for a deliberate change of view — new chain data, the filter
+ * toggling, the Tier 1/2/All selector — never for folding or unfolding a single supplier.
+ * That distinction lives in the caller: `nodes.length` alone can't make it, since a
+ * single-node toggle changes the node count exactly the same way a bulk view change does.
+ *
  * Nothing is saved here. `onMoveEnd` is the only writer, so no teardown can read a
  * half-dismantled store and persist it over a good value.
  */
-function ViewportKeeper({ signal, restored }: { signal: number; restored: Viewport | null }) {
+function ViewportKeeper({ signal, restored }: { signal: unknown; restored: Viewport | null }) {
   const { fitView, setViewport } = useReactFlow();
   const previous = useRef(signal);
 
@@ -351,6 +356,12 @@ export function ChainFlow({
     () => layoutTree(tree, open, nodeWidth, rowGap, keep),
     [tree, open, nodeWidth, rowGap, keep],
   );
+
+  // Bumped only by a deliberate bulk view change (the Tier 1/2/All selector below) —
+  // never by folding or unfolding a single supplier, which must leave the reader's pan
+  // and zoom exactly where they left it.
+  const [bulkChangeSignal, setBulkChangeSignal] = useState(0);
+  const fitSignal = useMemo(() => ({}), [tree, keep, bulkChangeSignal]);
 
   const toggle = useCallback((id: string) => {
     setOpen((current) => {
@@ -423,7 +434,7 @@ export function ChainFlow({
         >
           <Background gap={22} size={1} color="#e2e8f0" />
           <Controls showInteractive={false} />
-          <ViewportKeeper signal={nodes.length} restored={restored?.viewport ?? null} />
+          <ViewportKeeper signal={fitSignal} restored={restored?.viewport ?? null} />
 
           <Panel position="top-left">
             {/* Disabled while filtering rather than hidden: the filter decides depth for
@@ -433,6 +444,7 @@ export function ChainFlow({
               value={depth}
               onChange={(next) => {
                 setOpen(openIdsForDepth(tree, Number(next)));
+                setBulkChangeSignal((count) => count + 1);
               }}
               options={DEPTH_OPTIONS}
               label="Tiers shown"
