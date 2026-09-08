@@ -16,6 +16,10 @@ CLAUDE.md
 # TLS material for the production stack — never committed.
 docker/nginx/certs/
 
+# Machine-specific port remap when 5433 collides with another local project — not part
+# of the checked-in stack.
+docker-compose.override.yml
+
 # Env files — only the committed examples (.env.example, .env.prod.example) are kept;
 # every real env file, whatever it is named, is ignored.
 .env

@@ -12,6 +12,11 @@ import { type FormEvent, useState } from 'react';
 import { ApiError } from '../api/client.ts';
 import { useLogin } from '../api/queries.ts';
 
+// Already public (README, DEPLOY.md) and the demo data resets nightly, so autofilling
+// here just saves a reviewer the trip to GitHub — it doesn't change the exposure.
+const DEMO_USERNAME = 'testUser';
+const DEMO_PASSWORD = 'ClearChain-Demo-7fQ2';
+
 export function LoginPage() {
   const login = useLogin();
   const [username, setUsername] = useState('');
@@ -20,6 +25,11 @@ export function LoginPage() {
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     login.mutate({ username, password });
+  }
+
+  function handleAutofill() {
+    setUsername(DEMO_USERNAME);
+    setPassword(DEMO_PASSWORD);
   }
 
   return (
@@ -89,10 +99,24 @@ export function LoginPage() {
             {login.isPending ? 'Signing in…' : 'Sign in'}
           </Button>
 
-          {/* Below the button, so it never delays a reader who already holds the
-              credentials. The credentials themselves stay off this page on purpose —
-              they travel with the link that shares the demo, rather than being printed
-              beside the lock. */}
+          <Stack
+            spacing={1}
+            sx={{
+              textAlign: 'center',
+              bgcolor: '#EEF2FF',
+              border: '1px solid #C7D2FE',
+              borderRadius: 1,
+              p: 1.5,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              Fills in the shared demo account, for convenience only.
+            </Typography>
+            <Button variant="outlined" onClick={handleAutofill}>
+              Autofill demo credentials
+            </Button>
+          </Stack>
+
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
             An independent portfolio project — the buyer and its suppliers are invented.{' '}
             <Link

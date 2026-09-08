@@ -210,7 +210,26 @@ code never queries a schema it doesn't match yet:
 docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
 ```
 
-Don't re-run `seed` on a routine deploy — it is one-time demo data.
+Don't re-run `seed` manually on a routine deploy — the nightly cron job below already
+resets it on its own schedule.
+
+**Nightly demo reset.** The demo credentials are public (see the README) and the app
+accepts real writes — certificate uploads, ERP sync — so a scraping bot or a curious
+visitor can leave lasting changes. Rather than hide the credentials better, the demo
+resets itself: a cron job re-runs the `seed` service every night. It truncates
+`Certificate`, `Supplier` and `ErpSyncLog`, clears uploaded certificate PDFs, and
+reseeds deterministically from a fixed random seed — so the site looks the same every
+morning no matter what happened to it overnight.
+
+Add this to the server's crontab (`crontab -e`):
+
+```
+0 3 * * * cd /root/ClearChain && /usr/bin/docker compose -f docker-compose.prod.yml --profile tools run --rm seed >> /var/log/clearchain-reset.log 2>&1
+```
+
+`0 3 * * *` is 03:00 in the server's system time — confirm that's UTC (or whichever
+timezone you want) with `timedatectl` first. Check `/var/log/clearchain-reset.log` if
+the demo data ever looks stale or the reset silently stops running.
 
 **Logs and restart:**
 
