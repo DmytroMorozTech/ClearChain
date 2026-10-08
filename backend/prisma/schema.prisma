@@ -141,3 +141,37 @@ model ErpSyncLog {
 
   @@index([startedAt])
 }
+
+enum LlmAttemptOutcome {
+  PENDING
+  SUCCESS
+  INVALID_OUTPUT
+  REFUSED
+  UPSTREAM_ERROR
+  QUOTA_IP
+  QUOTA_GLOBAL
+}
+
+/// One row per "Fill from file" press, kept 90 days. Doubles as the rate-limit counter,
+/// so limits survive a restart. Holds no IP address: only a keyed hash and a truncated
+/// prefix (see src/http/clientIp.ts). No FK to Supplier on purpose — the log must
+/// outlive supplier deletion and the nightly demo reseed.
+model LlmExtractionAttempt {
+  id           String            @id @default(uuid()) @db.Uuid
+  createdAt    DateTime          @default(now())
+  ipHash       String
+  ipPrefix     String
+  supplierId   String?           @db.Uuid
+  mimeType     String
+  fileSize     Int
+  pageCount    Int?
+  outcome      LlmAttemptOutcome
+  model        String?
+  inputTokens  Int?
+  outputTokens Int?
+  latencyMs    Int?
+  warningCount Int?
+
+  @@index([createdAt])
+  @@index([ipHash, createdAt])
+}

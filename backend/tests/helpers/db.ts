@@ -21,7 +21,7 @@ export async function seedCountries(): Promise<void> {
 /** Wipes transactional data, leaving reference data in place. */
 export async function resetDatabase(): Promise<void> {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "Certificate", "Supplier", "ErpSyncLog" RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE "Certificate", "Supplier", "ErpSyncLog", "LlmExtractionAttempt" RESTART IDENTITY CASCADE',
   );
 }
 

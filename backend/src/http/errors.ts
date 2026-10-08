@@ -19,6 +19,10 @@ export type ErrorCode =
   | 'PAYLOAD_TOO_LARGE'
   | 'UNSUPPORTED_MEDIA_TYPE'
   | 'RATE_LIMITED'
+  | 'EXTRACTION_DISABLED'
+  | 'EXTRACTION_UNAVAILABLE'
+  | 'EXTRACTION_FAILED'
+  | 'EXTRACTION_QUOTA_EXCEEDED'
   | 'INTERNAL';
 
 const STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
@@ -41,6 +45,16 @@ const STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   PAYLOAD_TOO_LARGE: 413,
   UNSUPPORTED_MEDIA_TYPE: 415,
   RATE_LIMITED: 429,
+  // The feature is switched off on this deployment (no API key configured).
+  EXTRACTION_DISABLED: 503,
+  // The model provider failed, timed out or refused our credentials. Deliberately one
+  // code: which of those it was is an operator concern, not a client one.
+  EXTRACTION_UNAVAILABLE: 503,
+  // The provider answered, but not with something usable (refusal, truncated, schema
+  // violation). 422: the request was fine, this document could not be processed.
+  EXTRACTION_FAILED: 422,
+  // A daily limit for AI extraction is used up; details name the scope (ip | global).
+  EXTRACTION_QUOTA_EXCEEDED: 429,
   INTERNAL: 500,
 };
 

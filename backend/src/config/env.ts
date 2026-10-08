@@ -43,6 +43,21 @@ const envSchema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
 
+  // ── AI-assisted extraction ────────────────────────────────────────────────
+  // Optional: without a key the feature reports itself disabled and nothing else
+  // changes. An empty string counts as absent, which is how the test setup switches it
+  // off even when a developer's real key sits in backend/.env.
+  ANTHROPIC_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => (value !== undefined && value.trim() !== '' ? value : undefined)),
+  ANTHROPIC_MODEL: z.string().min(1).default('claude-haiku-4-5'),
+  LLM_DAILY_LIMIT_PER_IP: z.coerce.number().int().min(0).default(8),
+  LLM_DAILY_LIMIT_GLOBAL: z.coerce.number().int().min(0).default(20),
+  LLM_MAX_PDF_PAGES: z.coerce.number().int().positive().default(5),
+  // Per attempt; with one SDK retry the worst case stays under nginx's 60 s proxy timeout.
+  LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
+
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
 
   /**

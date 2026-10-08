@@ -34,6 +34,11 @@ process.env.AUTH_USER = TEST_USERNAME;
 process.env.AUTH_PASSWORD_HASH = await hashPassword(TEST_PASSWORD);
 process.env.AUTH_SECRET = 'test-secret-long-enough-to-satisfy-the-schema';
 
+// The suites must never reach the real model. An empty key reads as "not configured"
+// (see env.ts), and dotenv does not overwrite a variable that is already set — so a
+// developer's real key in backend/.env cannot leak into a test run.
+process.env.ANTHROPIC_API_KEY = '';
+
 // Uploads go to a throwaway directory so the suite never writes into the repo's own
 // ./uploads folder, and so assertions about what landed on disk start from empty.
 process.env.STORAGE_DRIVER = 'local';
