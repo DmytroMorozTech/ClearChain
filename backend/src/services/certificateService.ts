@@ -2,9 +2,9 @@ import type { CertificateType, Prisma } from '@prisma/client';
 
 import { prisma } from '../db/prisma.ts';
 import { deriveCertificateStatus } from '../domain/certificateStatus.ts';
-import { AppError, notFound } from '../http/errors.ts';
+import { notFound } from '../http/errors.ts';
 import { buildCertificateKey, getStorage } from '../storage/index.ts';
-import { type AllowedMimeType, sniffMimeType } from '../storage/contentTypes.ts';
+import { assertAcceptedFile } from '../storage/contentTypes.ts';
 
 export interface UploadedFile {
   buffer: Buffer;
@@ -40,19 +40,7 @@ export async function createCertificate(
   });
   if (supplier === null) throw notFound('Supplier');
 
-  const actualMimeType = sniffMimeType(file.buffer);
-  if (actualMimeType === null) {
-    throw new AppError(
-      'UNSUPPORTED_MEDIA_TYPE',
-      'Only PDF, PNG and JPEG files are accepted. The uploaded file is none of these.',
-    );
-  }
-  if (!declaredMatches(file.declaredMimeType, actualMimeType)) {
-    throw new AppError(
-      'UNSUPPORTED_MEDIA_TYPE',
-      `File content is ${actualMimeType} but was declared as ${file.declaredMimeType}.`,
-    );
-  }
+  const actualMimeType = assertAcceptedFile(file.buffer, file.declaredMimeType);
 
   const storage = getStorage();
   const storageKey = buildCertificateKey(supplierId, actualMimeType);
@@ -81,12 +69,6 @@ export async function createCertificate(
     });
     throw error;
   }
-}
-
-function declaredMatches(declared: string, actual: AllowedMimeType): boolean {
-  if (declared === actual) return true;
-  // Browsers and curl disagree about JPEG; treat the historical spelling as equivalent.
-  return actual === 'image/jpeg' && declared === 'image/jpg';
 }
 
 export async function getCertificate(id: string) {

@@ -12,14 +12,35 @@ import { aggregatesRouter } from './http/routes/aggregates.ts';
 import { authRouter } from './http/routes/auth.ts';
 import { certificatesRouter } from './http/routes/certificates.ts';
 import { erpRouter } from './http/routes/erp.ts';
+import { createExtractionRouter } from './http/routes/extraction.ts';
 import { healthRouter } from './http/routes/health.ts';
 import { suppliersRouter } from './http/routes/suppliers.ts';
+import { AnthropicLlmClient, type LlmClient } from './llm/client.ts';
+
+export interface AppOptions {
+  /**
+   * The model client for AI extraction. Tests inject a fake; omitted, it is built from
+   * the environment; null switches the feature off.
+   */
+  llmClient?: LlmClient | null;
+}
+
+function llmClientFromEnv(): LlmClient | null {
+  if (env.ANTHROPIC_API_KEY === undefined) return null;
+  return new AnthropicLlmClient({
+    apiKey: env.ANTHROPIC_API_KEY,
+    model: env.ANTHROPIC_MODEL,
+    timeoutMs: env.LLM_TIMEOUT_MS,
+    // One retry keeps the worst case (2 × timeout) under nginx's 60 s proxy timeout.
+    maxRetries: 1,
+  });
+}
 
 /**
  * Builds the app without binding a port, so integration tests can drive it through
  * supertest in-process — no port allocation, no teardown races, no sleeping.
  */
-export function createApp(): Express {
+export function createApp(options: AppOptions = {}): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -59,6 +80,19 @@ export function createApp(): Express {
   // internal path matches handles the request. /health against /dashboard, /chain and
   // /reference/* — disjoint, and with no common segment worth its own prefix.
   app.use('/api', aggregatesRouter);
+
+  // AI extraction spans /extraction/status and /suppliers/:id/certificates/extract, so it
+  // mounts at /api like the aggregates. Before suppliersRouter, though nothing there
+  // matches .../extract either.
+  app.use(
+    '/api',
+    createExtractionRouter({
+      llmClient: options.llmClient === undefined ? llmClientFromEnv() : options.llmClient,
+      limits: { perIp: env.LLM_DAILY_LIMIT_PER_IP, global: env.LLM_DAILY_LIMIT_GLOBAL },
+      maxPdfPages: env.LLM_MAX_PDF_PAGES,
+      ipSecret: env.AUTH_SECRET,
+    }),
+  );
 
   // These do share a segment across every one of their routes, so they get one.
   app.use('/api/suppliers', suppliersRouter);

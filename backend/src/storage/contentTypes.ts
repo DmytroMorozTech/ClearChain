@@ -1,3 +1,5 @@
+import { AppError } from '../http/errors.ts';
+
 /**
  * What may be uploaded, and how we decide.
  *
@@ -36,6 +38,30 @@ export function sniffMimeType(buffer: Buffer): AllowedMimeType | null {
     }
   }
   return null;
+}
+
+/**
+ * The real type of an upload, checked against what the client declared. Shared by every
+ * route that accepts a file, so the rule cannot drift between them.
+ */
+export function assertAcceptedFile(buffer: Buffer, declaredMimeType: string): AllowedMimeType {
+  const actual = sniffMimeType(buffer);
+  if (actual === null) {
+    throw new AppError(
+      'UNSUPPORTED_MEDIA_TYPE',
+      'Only PDF, PNG and JPEG files are accepted. The uploaded file is none of these.',
+    );
+  }
+  // Browsers and curl disagree about JPEG; treat the historical spelling as equivalent.
+  const matches =
+    declaredMimeType === actual || (actual === 'image/jpeg' && declaredMimeType === 'image/jpg');
+  if (!matches) {
+    throw new AppError(
+      'UNSUPPORTED_MEDIA_TYPE',
+      `File content is ${actual} but was declared as ${declaredMimeType}.`,
+    );
+  }
+  return actual;
 }
 
 /**
