@@ -62,6 +62,21 @@ function parseIsoDate(value: string): string | null {
   return !Number.isNaN(date.getTime()) && isoDay(date) === value ? value : null;
 }
 
+/**
+ * Whether the quote shows both the year and the day of the date it supports.
+ *
+ * A quote can be genuine and still not justify the value: "Issued: March 2026" is in
+ * the document, yet "2026-03-01" adds a day nobody wrote, and "valid for three years"
+ * yields a date by arithmetic. Year and day are checked as standalone numbers (with or
+ * without a leading zero); the month is not, because it may be spelled out in either
+ * language.
+ */
+function quoteShowsDate(quote: string, isoDate: string): boolean {
+  const year = isoDate.slice(0, 4);
+  const day = String(Number(isoDate.slice(8, 10)));
+  return quote.includes(year) && new RegExp(`(^|\\D)0?${day}(\\D|$)`).test(quote);
+}
+
 export function validateExtraction(
   raw: ModelOutput,
   documentText: string | null,
@@ -170,10 +185,10 @@ export function validateExtraction(
       warn(field, 'The supporting quote could not be found in the document — check this value.');
     }
 
-    if ((field === 'issueDate' || field === 'expiryDate') && !quote.includes(value.slice(0, 4))) {
+    if ((field === 'issueDate' || field === 'expiryDate') && !quoteShowsDate(quote, value)) {
       warn(
         field,
-        `The supporting quote does not mention the year ${value.slice(0, 4)} — check this date.`,
+        `The supporting quote does not show the full date ${value} — it may have been inferred rather than read. Check this date.`,
       );
     }
   }

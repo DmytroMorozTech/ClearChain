@@ -131,6 +131,47 @@ describe('validateExtraction', () => {
     expect(fieldsWarned(result)).toContain('expiryDate');
   });
 
+  it('warns when a date quote does not show the day — a month-and-year date was completed by guessing', () => {
+    const text = `${TEXT}\nIssued: March 2026`;
+    const raw = output();
+    const guessed: ModelOutput = {
+      ...raw,
+      issueDate: '2026-03-01',
+      expiryDate: null,
+      evidence: { ...raw.evidence, issueDate: 'Issued: March 2026', expiryDate: null },
+    };
+    const result = validateExtraction(guessed, text, AS_OF);
+    expect(result.suggestion.issueDate).toBe('2026-03-01');
+    expect(fieldsWarned(result)).toContain('issueDate');
+  });
+
+  it('warns when a date was computed from a duration rather than read', () => {
+    const text = `${TEXT}\nValid for three years from the date of issue.`;
+    const raw = output();
+    const computed: ModelOutput = {
+      ...raw,
+      expiryDate: '2028-03-01',
+      evidence: { ...raw.evidence, expiryDate: 'Valid for three years from the date of issue.' },
+    };
+    expect(fieldsWarned(validateExtraction(computed, text, AS_OF))).toContain('expiryDate');
+  });
+
+  it.each([
+    ['2025-06-02', 'Ausstellungsdatum: 02.06.2025'],
+    ['2026-01-15', 'Ausgestellt am 15. Januar 2026'],
+    ['2025-09-01', 'Issue date: September 1, 2025'],
+    ['2025-12-31', 'Date of issue: 2025-12-31'],
+    ['2026-04-03', 'Ausstellungsdatum: 03/04/2026'],
+  ])('accepts %s backed by "%s" without a date warning', (issueDate, quote) => {
+    const raw = output();
+    const result = validateExtraction(
+      { ...raw, issueDate, expiryDate: null, evidence: { ...raw.evidence, issueDate: quote } },
+      `${TEXT}\n${quote}`,
+      AS_OF,
+    );
+    expect(fieldsWarned(result)).not.toContain('issueDate');
+  });
+
   it('trims strings and turns blank ones into null', () => {
     const result = validateExtraction(
       output({ issuer: '   ', certificateNumber: '  Z-2025-0042 ' }),
