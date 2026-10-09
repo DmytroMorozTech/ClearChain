@@ -304,12 +304,17 @@ is no repeated prefix to reuse.
 
 **Privacy.** The document is sent to Anthropic, which the dialog says before a file is chosen.
 Each attempt is logged — outcome, model, tokens, latency — for abuse visibility and as the
-rate-limit counter itself. An IP address is personal data, so the log never holds one:
-only an HMAC of it (a plain hash of an IPv4 address can be reversed by trying all 2³²)
-and a truncated prefix such as `203.0.113.0/24`, kept for 90 days to spot repeated abuse.
-The basis is legitimate interest in preventing misuse; a production system would list this
-in its privacy policy. `npm run llm:attempts` summarises the log. Read-only demo mode
-leaves the feature on, since it writes nothing a visitor could see.
+rate-limit counter itself. An IP address is personal data, so nothing on the server keeps
+one. The log stores only an HMAC of it — keyed, because a plain hash of an IPv4 address can
+be reversed by trying all 2³² — and the key changes at every UTC midnight. The limits are
+daily, so counting still works; once the day is over, a row can no longer be matched to an
+address or even to the same client's other days, by anyone. The remaining rows are, in
+effect, anonymous usage statistics, kept for 90 days. nginx restores the real address for
+rate limiting but writes only a truncated one (`/24`) to its access log, and container logs
+rotate at 30 MB per service. Rate limiting by IP rests on legitimate interest in preventing
+misuse; a production system would also list it, and the processors involved (hosting, CDN,
+the model provider), in its privacy policy. `npm run llm:attempts` summarises the log.
+Read-only demo mode leaves the feature on, since it writes nothing a visitor could see.
 
 **Which model, and how we know.** `npm run eval:extract` runs a synthetic set of 25
 invented certificates (English and German, every supported type, several date formats,

@@ -221,9 +221,12 @@ Only the containers whose image changed are recreated; `db` keeps running. Expec
 seconds of downtime while the new containers pass their healthcheck.
 
 **If the change includes a Prisma migration**, run it *before* the final `up`, so the new
-code never queries a schema it doesn't match yet:
+code never queries a schema it doesn't match yet. `migrate` has its own image (the
+`tools` profile), and a plain `build` skips it — rebuild it first, or it applies the
+migrations it was built with and reports nothing pending:
 
 ```bash
+docker compose -f docker-compose.prod.yml --profile tools build migrate seed
 docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
 ```
 
@@ -249,7 +252,7 @@ timezone you want) with `timedatectl` first. Check `/var/log/clearchain-reset.lo
 the demo data ever looks stale or the reset silently stops running.
 
 **Who has used AI extraction.** The attempt log holds outcomes, tokens and a hashed
-client key — no addresses. The runtime image has no TypeScript, so the report runs
+client key that changes every UTC day — no addresses, not even partial ones. The runtime image has no TypeScript, so the report runs
 through the tools image:
 
 ```bash
