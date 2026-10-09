@@ -330,7 +330,11 @@ export function CertificateUploadDialog({
       // While a read is in flight only Cancel closes this step: a stray click outside or
       // Esc would throw away a result that is already being paid for.
       onClose={step === 'reading' ? undefined : handleClose}
-      maxWidth="sm"
+      // Wider than a typical form dialog because the values are read from documents:
+      // certification bodies have long legal names ("Rheinwerk Prüfgesellschaft mbH")
+      // that a 600px dialog cut off mid-word, which is exactly where a reviewer has to
+      // compare them with the source.
+      maxWidth="md"
       fullWidth
       fullScreen={fullScreen}
     >
