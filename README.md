@@ -8,9 +8,13 @@ data in step.
 **Live demo:** [https://clearchain.dmoroz.dev/](https://clearchain.dmoroz.dev/) ·
 sign in with `testUser` / `ClearChain-Demo-7fQ2`
 
+**Try the AI upload:** open any supplier → **Upload** → choose one of the
+[sample certificates](backend/eval/fixtures/) (invented, safe to send). Claude reads it,
+you check the values, and nothing is saved until you press Save.
+
 ```
 React 19 · TypeScript · Vite · MUI · Recharts · react-flow
-Node 24 · Express 5 · Prisma 7 · PostgreSQL 16 · Docker
+Node 24 · Express 5 · Prisma 7 · PostgreSQL 16 · Docker · Claude API
 ```
 
 <img width="1914" height="808" alt="image" src="https://github.com/user-attachments/assets/cc31603e-89c4-41b1-a993-250638b27e41" />
@@ -22,6 +26,14 @@ Node 24 · Express 5 · Prisma 7 · PostgreSQL 16 · Docker
 <img width="1904" height="896" alt="Supplier detail with risk breakdown" src="https://github.com/user-attachments/assets/8acbbe9a-9cba-48d2-b47d-b1d95794ff83" />
 
 <img width="1912" height="923" alt="Supply chain hierarchy" src="https://github.com/user-attachments/assets/42aa569c-0cff-4c6d-804b-918cd80f88ce" />
+
+**AI-assisted upload.** A German ISO 14001 certificate read into the form for review…
+
+<img width="1905" height="945" alt="Upload dialog: the form pre-filled from a German ISO 14001 certificate, ready to check and save" src="docs/screenshots/ai-upload-review.png" />
+
+…and after saving: the supplier is compliant again and its risk score drops from 43 to 30.
+
+<img width="1916" height="945" alt="Supplier after saving: the new certificate is valid, all required certificates are on file, risk 30" src="docs/screenshots/ai-upload-saved.png" />
 
 ---
 
@@ -48,10 +60,12 @@ the tests, not the feature count. The reasoning behind each of these is in
 - **Uploads treated as hostile.** Files are validated by their leading bytes rather than
   the `Content-Type` a client sent, stored under a UUID key, and always served with
   `Content-Disposition: attachment` and `nosniff`.
-- **AI-assisted certificate extraction.** Claude reads an uploaded certificate and
-  pre-fills the form; every value is schema-validated, checked against a verbatim quote
-  from the document and confirmed by the user before anything is saved. The model was
-  chosen on a 25-document eval set, with daily limits that cap the cost.
+- **AI-assisted certificate upload.** Choose a file and Claude reads the type, issuer,
+  number and dates; the form opens pre-filled for review, with any value the model could
+  not back with a verbatim quote from the document highlighted. Nothing is saved without
+  the user. Output is schema-validated and range-checked, the model was chosen on a
+  25-document eval set (Sonnet 5.5: 25/25, no invented values), and daily limits cap the
+  cost.
 
 ---
 
@@ -87,7 +101,7 @@ docker compose down      # add -v to wipe the database volume
 ## Testing
 
 ```bash
-npm test                  # 191 unit tests, no infrastructure, no API key
+npm test                  # 201 unit tests, no infrastructure, no API key
 npm run test:integration  # 106 API tests against clearchain_test
 npm run eval:extract -w @clearchain/backend   # model eval — calls the real API, costs cents
 ```
