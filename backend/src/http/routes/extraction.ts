@@ -1,3 +1,4 @@
+import type { LlmAttemptOutcome } from '@prisma/client';
 import { type NextFunction, type Request, type Response, Router } from 'express';
 
 import { prisma } from '../../db/prisma.ts';
@@ -5,6 +6,7 @@ import { type LlmClient, LlmError } from '../../llm/client.ts';
 import { type ExtractionResult, extractCertificateFields } from '../../llm/extract.ts';
 import { type PdfInfo, readPdf, usableText } from '../../llm/pdfInfo.ts';
 import {
+  type AttemptDetails,
   type QuotaLimits,
   completeAttempt,
   nextUtcMidnight,
@@ -37,6 +39,25 @@ const OUTCOME_BY_FAILURE = {
 /** One line per attempt: no document content, no address — enough to follow cost and failures. */
 function logAttempt(fields: Record<string, string | number | null>): void {
   console.info('llm_extract', JSON.stringify(fields));
+}
+
+/**
+ * Records how an attempt ended, without letting a failed write change the answer.
+ *
+ * By the time this runs the outcome is already decided — a paid suggestion to return, or
+ * a readable error to explain. A database hiccup here must not turn either into a 500.
+ * The row then stays PENDING, which still counts against the limit, so it fails safe.
+ */
+async function finishAttempt(
+  id: string,
+  outcome: LlmAttemptOutcome,
+  details: AttemptDetails,
+): Promise<void> {
+  try {
+    await completeAttempt(id, outcome, details);
+  } catch (error) {
+    console.error('Could not record the outcome of extraction attempt', id, error);
+  }
 }
 
 /**
@@ -152,7 +173,7 @@ export function createExtractionRouter(deps: ExtractionDeps): Router {
         const failure = error instanceof LlmError ? error.failure : 'unavailable';
         if (!(error instanceof LlmError)) console.error('Unexpected extraction error', error);
 
-        await completeAttempt(decision.attemptId, OUTCOME_BY_FAILURE[failure], {
+        await finishAttempt(decision.attemptId, OUTCOME_BY_FAILURE[failure], {
           model: client.model,
         });
         logAttempt({ attemptId: decision.attemptId, model: client.model, outcome: failure });
@@ -169,7 +190,7 @@ export function createExtractionRouter(deps: ExtractionDeps): Router {
         );
       }
 
-      await completeAttempt(decision.attemptId, 'SUCCESS', {
+      await finishAttempt(decision.attemptId, 'SUCCESS', {
         model: result.model,
         inputTokens: result.usage.inputTokens,
         outputTokens: result.usage.outputTokens,
