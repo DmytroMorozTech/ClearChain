@@ -215,6 +215,45 @@ export const sessionSchema = z.object({
   user: z.string(),
 });
 
+const extractableFieldSchema = z.enum([
+  'type',
+  'issuer',
+  'certificateNumber',
+  'issueDate',
+  'expiryDate',
+]);
+
+export const extractionStatusSchema = z.object({
+  enabled: z.boolean(),
+  model: z.string().nullable(),
+  remainingToday: z.number(),
+  resetsAt: z.string(),
+});
+
+/** A suggestion for the upload form — never a saved certificate. */
+export const extractionResponseSchema = z.object({
+  suggestion: z.object({
+    type: certificateTypeSchema.nullable(),
+    issuer: z.string().nullable(),
+    certificateNumber: z.string().nullable(),
+    issueDate: z.string().nullable(),
+    expiryDate: z.string().nullable(),
+  }),
+  evidence: z.record(extractableFieldSchema, z.string().nullable()),
+  verification: z.partialRecord(
+    extractableFieldSchema,
+    z.enum(['verified', 'not_found', 'unverifiable', 'missing']),
+  ),
+  warnings: z.array(z.object({ field: extractableFieldSchema.nullable(), message: z.string() })),
+  model: z.string(),
+  usage: z.object({ inputTokens: z.number(), outputTokens: z.number() }),
+  remainingToday: z.number(),
+});
+
+export type ExtractableField = z.infer<typeof extractableFieldSchema>;
+export type ExtractionStatus = z.infer<typeof extractionStatusSchema>;
+export type ExtractionResponse = z.infer<typeof extractionResponseSchema>;
+
 export type Session = z.infer<typeof sessionSchema>;
 export type Country = z.infer<typeof countrySchema>;
 export type CountryOption = z.infer<typeof countryOptionSchema>;

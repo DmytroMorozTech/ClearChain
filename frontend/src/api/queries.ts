@@ -6,6 +6,8 @@ import {
   chainSchema,
   countryOptionSchema,
   dashboardSchema,
+  extractionResponseSchema,
+  extractionStatusSchema,
   paginated,
   sessionSchema,
   supplierDetailSchema,
@@ -30,6 +32,7 @@ export const queryKeys = {
   certificates: (params: CertificateListParams) => ['certificates', params] as const,
   syncLogs: ['sync-logs'] as const,
   countries: ['countries'] as const,
+  extractionStatus: ['extraction-status'] as const,
 };
 
 export interface SupplierListParams {
@@ -198,5 +201,34 @@ export const useDeleteCertificate = () => {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/certificates/${id}`),
     onSuccess: invalidate,
+  });
+};
+
+/**
+ * Whether AI extraction is on here and how many calls are left today. Read fresh each
+ * time the upload dialog opens: the count changes with every use, by anyone.
+ */
+export const useExtractionStatus = (enabled: boolean) =>
+  useQuery({
+    queryKey: queryKeys.extractionStatus,
+    queryFn: ({ signal }) => api.get('/extraction/status', extractionStatusSchema, signal),
+    enabled,
+    staleTime: 0,
+  });
+
+/** Suggests field values from a file. Saves nothing, so nothing else is invalidated. */
+export const useExtractCertificate = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ supplierId, file }: { supplierId: string; file: File }) => {
+      const form = new FormData();
+      form.set('file', file);
+      return api.post(
+        `/suppliers/${supplierId}/certificates/extract`,
+        extractionResponseSchema,
+        form,
+      );
+    },
+    onSettled: () => client.invalidateQueries({ queryKey: queryKeys.extractionStatus }),
   });
 };

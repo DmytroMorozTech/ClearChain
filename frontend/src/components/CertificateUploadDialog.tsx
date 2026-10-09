@@ -1,5 +1,6 @@
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -7,15 +8,21 @@ import DialogTitle from '@mui/material/DialogTitle';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
-import { Upload } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { Sparkles, Upload } from 'lucide-react';
+import { type FormEvent, type ReactElement, useState } from 'react';
 
 import { ApiError } from '../api/client.ts';
-import { useUploadCertificate } from '../api/queries.ts';
-import type { CertificateType } from '../api/schemas.ts';
+import {
+  useExtractCertificate,
+  useExtractionStatus,
+  useUploadCertificate,
+} from '../api/queries.ts';
+import type { CertificateType, ExtractableField, ExtractionResponse } from '../api/schemas.ts';
+import { extractionErrorMessage, fieldFlags, mergeSuggestion } from '../extraction.ts';
 import { CERTIFICATE_LABELS, formatFileSize } from '../format.ts';
 import { InfoNote } from './InfoNote.tsx';
 
@@ -54,6 +61,19 @@ function dayAfter(isoDate: string): string | undefined {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * Shows, on hover, the document text a suggested value was taken from — so checking a
+ * value means comparing it with its source rather than reopening the PDF.
+ */
+function SourceQuote({ quote, children }: { quote: string | null; children: ReactElement }) {
+  if (quote === null) return children;
+  return (
+    <Tooltip title={`Found in document: “${quote}”`} placement="top-start">
+      {children}
+    </Tooltip>
+  );
+}
+
 interface CertificateUploadDialogProps {
   supplierId: string;
   open: boolean;
@@ -77,11 +97,33 @@ export function CertificateUploadDialog({
 
   const [type, setType] = useState<CertificateType>('ISO_14001');
   const [issueDate, setIssueDate] = useState(today());
+  // Whether the issue date is still the "today" default rather than something chosen.
+  const [issueDateTouched, setIssueDateTouched] = useState(false);
   const [expiryDate, setExpiryDate] = useState('');
   const [issuer, setIssuer] = useState('');
   const [certificateNumber, setCertificateNumber] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+
+  const status = useExtractionStatus(open);
+  const extraction = useExtractCertificate();
+  const [extracted, setExtracted] = useState<ExtractionResponse | null>(null);
+  const flags = extracted === null ? {} : fieldFlags(extracted);
+  const extractionReady = status.data?.enabled === true && status.data.remainingToday > 0;
+
+  /** The quote behind a suggested value, for the hover tooltip — verified or not. */
+  const quoteFor = (field: ExtractableField): string | null =>
+    extracted?.suggestion[field] != null ? (extracted.evidence[field] ?? null) : null;
+
+  /** Highlights a field the extraction could not vouch for; server errors still win. */
+  const flagProps = (field: ExtractableField) => {
+    const flag = flags[field];
+    return {
+      ...(flag && !fieldErrors.has(field) ? { color: 'warning' as const, focused: true } : {}),
+      helperText: fieldErrors.get(field) ?? flag?.message,
+      disabled: extraction.isPending,
+    };
+  };
 
   const error = upload.error;
   const fieldErrors =
@@ -92,15 +134,21 @@ export function CertificateUploadDialog({
   function reset() {
     setType('ISO_14001');
     setIssueDate(today());
+    setIssueDateTouched(false);
     setExpiryDate('');
     setIssuer('');
     setCertificateNumber('');
     setFile(null);
     setFileError(null);
     upload.reset();
+    extraction.reset();
+    setExtracted(null);
   }
 
   function chooseFile(picked: File | null) {
+    // Suggestions describe the previous file; they must not linger next to a new one.
+    extraction.reset();
+    setExtracted(null);
     if (picked !== null && picked.size > MAX_UPLOAD_BYTES) {
       setFile(null);
       setFileError(
@@ -115,6 +163,28 @@ export function CertificateUploadDialog({
   function handleClose() {
     reset();
     onClose();
+  }
+
+  function handleExtract() {
+    if (file === null) return;
+    extraction.mutate(
+      { supplierId, file },
+      {
+        onSuccess: (response) => {
+          const merged = mergeSuggestion(
+            { type, issuer, certificateNumber, issueDate, expiryDate },
+            response.suggestion,
+            { untouched: issueDateTouched ? [] : ['issueDate'] },
+          );
+          setType(merged.type);
+          setIssuer(merged.issuer);
+          setCertificateNumber(merged.certificateNumber);
+          setIssueDate(merged.issueDate);
+          setExpiryDate(merged.expiryDate);
+          setExtracted(response);
+        },
+      },
+    );
   }
 
   function handleSubmit(event: FormEvent) {
@@ -153,98 +223,15 @@ export function CertificateUploadDialog({
               </Alert>
             )}
 
-            <TextField
-              select
-              label="Certificate type"
-              value={type}
-              onChange={(event) => {
-                setType(event.target.value as CertificateType);
-              }}
-              fullWidth
-            >
-              {TYPES.map((value) => (
-                <MenuItem key={value} value={value}>
-                  {CERTIFICATE_LABELS[value]}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            {/* Side by side these are ~160px each on a phone, which is narrower than the
-                native date picker wants. */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              {/* The bounds restate rules the API already enforces, so a mistake is
-                  caught by the picker instead of by a round trip. The server remains the
-                  authority — a typed-in date that slips past the browser still gets the
-                  same answer it always did. */}
-              <TextField
-                label="Issue date"
-                type="date"
-                value={issueDate}
-                onChange={(event) => {
-                  setIssueDate(event.target.value);
-                }}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: today() } }}
-                error={fieldErrors.has('issueDate')}
-                helperText={fieldErrors.get('issueDate')}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Expiry date"
-                type="date"
-                value={expiryDate}
-                onChange={(event) => {
-                  setExpiryDate(event.target.value);
-                }}
-                slotProps={{
-                  inputLabel: { shrink: true },
-                  htmlInput: {
-                    min: dayAfter(issueDate),
-                    max: shiftedFromToday(MAX_EXPIRY_YEARS_AHEAD),
-                  },
-                }}
-                error={fieldErrors.has('expiryDate')}
-                helperText={fieldErrors.get('expiryDate')}
-                fullWidth
-                required
-              />
-            </Stack>
-
-            {/* Free text, not a list: the issuing bodies in the seed data are only the
-                ones this dataset happens to use, and a certificate can be issued by an
-                auditor nobody has enumerated. Both are optional — the API accepts a
-                certificate without either. */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                label="Issuer"
-                placeholder="e.g. TÜV SÜD"
-                value={issuer}
-                onChange={(event) => {
-                  setIssuer(event.target.value);
-                }}
-                error={fieldErrors.has('issuer')}
-                helperText={fieldErrors.get('issuer')}
-                fullWidth
-              />
-              <TextField
-                label="Certificate number"
-                placeholder="e.g. ISO-54532"
-                value={certificateNumber}
-                onChange={(event) => {
-                  setCertificateNumber(event.target.value);
-                }}
-                error={fieldErrors.has('certificateNumber')}
-                helperText={fieldErrors.get('certificateNumber')}
-                fullWidth
-              />
-            </Stack>
-
+            {/* The file comes first now: with AI extraction it can fill in everything
+                below it, so choosing it is the natural first step. */}
             <Stack spacing={0.75}>
               <Button
                 component="label"
                 variant="outlined"
                 color={fileError === null ? 'primary' : 'error'}
                 startIcon={<Upload size={17} />}
+                disabled={extraction.isPending}
               >
                 {file ? file.name : 'Choose file (PDF, PNG or JPEG)'}
                 <input
@@ -261,6 +248,163 @@ export function CertificateUploadDialog({
                   {fileError}
                 </Typography>
               )}
+            </Stack>
+
+            {file !== null && (
+              <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
+                <Tooltip
+                  title={
+                    status.data?.enabled === false
+                      ? 'AI extraction is not enabled on this deployment'
+                      : ''
+                  }
+                >
+                  {/* A span, because a disabled button fires no hover events of its own. */}
+                  <span>
+                    <Button
+                      variant="text"
+                      onClick={handleExtract}
+                      disabled={!extractionReady || extraction.isPending}
+                      startIcon={
+                        extraction.isPending ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          <Sparkles size={17} />
+                        )
+                      }
+                    >
+                      {extraction.isPending ? 'Reading the document…' : 'Fill from file'}
+                    </Button>
+                  </span>
+                </Tooltip>
+                {/* Only when the feature is on: a disabled deployment sends nothing anywhere,
+                    and saying otherwise would be a false privacy notice. */}
+                {status.data?.enabled === true && (
+                  <Typography variant="caption" color="text.secondary">
+                    The file is sent to an external AI service (Anthropic) to read the fields. Check
+                    every value before saving. {String(status.data.remainingToday)} left today.
+                  </Typography>
+                )}
+              </Stack>
+            )}
+
+            {extraction.error && (
+              <Alert severity="warning">{extractionErrorMessage(extraction.error)}</Alert>
+            )}
+
+            {extracted && (
+              <Alert severity={extracted.warnings.length > 0 ? 'warning' : 'success'}>
+                {extracted.warnings.length > 0 ? (
+                  <>
+                    Fields were filled in from the document. Please check the highlighted ones:
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                      {extracted.warnings.map((warning, index) => (
+                        <li key={index}>{warning.message}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  'Fields were filled in from the document. Please check them before saving.'
+                )}
+              </Alert>
+            )}
+
+            <SourceQuote quote={quoteFor('type')}>
+              <TextField
+                select
+                label="Certificate type"
+                value={type}
+                onChange={(event) => {
+                  setType(event.target.value as CertificateType);
+                }}
+                {...flagProps('type')}
+                fullWidth
+              >
+                {TYPES.map((value) => (
+                  <MenuItem key={value} value={value}>
+                    {CERTIFICATE_LABELS[value]}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </SourceQuote>
+
+            {/* Side by side these are ~160px each on a phone, which is narrower than the
+                native date picker wants. */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              {/* The bounds restate rules the API already enforces, so a mistake is
+                  caught by the picker instead of by a round trip. The server remains the
+                  authority — a typed-in date that slips past the browser still gets the
+                  same answer it always did. */}
+              <SourceQuote quote={quoteFor('issueDate')}>
+                <TextField
+                  label="Issue date"
+                  type="date"
+                  value={issueDate}
+                  onChange={(event) => {
+                    setIssueDate(event.target.value);
+                    setIssueDateTouched(true);
+                  }}
+                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: today() } }}
+                  error={fieldErrors.has('issueDate')}
+                  {...flagProps('issueDate')}
+                  fullWidth
+                  required
+                />
+              </SourceQuote>
+              <SourceQuote quote={quoteFor('expiryDate')}>
+                <TextField
+                  label="Expiry date"
+                  type="date"
+                  value={expiryDate}
+                  onChange={(event) => {
+                    setExpiryDate(event.target.value);
+                  }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: {
+                      min: dayAfter(issueDate),
+                      max: shiftedFromToday(MAX_EXPIRY_YEARS_AHEAD),
+                    },
+                  }}
+                  error={fieldErrors.has('expiryDate')}
+                  {...flagProps('expiryDate')}
+                  fullWidth
+                  required
+                />
+              </SourceQuote>
+            </Stack>
+
+            {/* Free text, not a list: the issuing bodies in the seed data are only the
+                ones this dataset happens to use, and a certificate can be issued by an
+                auditor nobody has enumerated. Both are optional — the API accepts a
+                certificate without either. */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <SourceQuote quote={quoteFor('issuer')}>
+                <TextField
+                  label="Issuer"
+                  placeholder="e.g. TÜV SÜD"
+                  value={issuer}
+                  onChange={(event) => {
+                    setIssuer(event.target.value);
+                  }}
+                  error={fieldErrors.has('issuer')}
+                  {...flagProps('issuer')}
+                  fullWidth
+                />
+              </SourceQuote>
+              <SourceQuote quote={quoteFor('certificateNumber')}>
+                <TextField
+                  label="Certificate number"
+                  placeholder="e.g. ISO-54532"
+                  value={certificateNumber}
+                  onChange={(event) => {
+                    setCertificateNumber(event.target.value);
+                  }}
+                  error={fieldErrors.has('certificateNumber')}
+                  {...flagProps('certificateNumber')}
+                  fullWidth
+                />
+              </SourceQuote>
             </Stack>
 
             <InfoNote>
