@@ -6,10 +6,20 @@
 # Everything it needs comes from a .env file beside this one. Copy .env.prod.example
 # and fill it in — the file is gitignored and must never be committed.
 
+# Container logs rotate instead of growing for ever. Docker's default keeps every line
+# indefinitely; capped, an access-log line ages out within days, which is all a demo
+# needs for debugging.
+x-logging: &rotated-logs
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *rotated-logs
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -30,6 +40,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
+    logging: *rotated-logs
     depends_on:
       db:
         condition: service_healthy
@@ -109,6 +120,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     restart: unless-stopped
+    logging: *rotated-logs
     depends_on:
       - api
     ports:
