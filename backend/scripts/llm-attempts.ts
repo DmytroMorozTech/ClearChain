@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 /**
- * Who has been using "Fill from file", from the attempt log.
+ * Who has been using AI certificate extraction, from the attempt log.
  *
  *   npm run llm:attempts -w @clearchain/backend
  *

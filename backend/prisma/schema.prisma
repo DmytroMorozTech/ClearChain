@@ -152,7 +152,7 @@ enum LlmAttemptOutcome {
   QUOTA_GLOBAL
 }
 
-/// One row per "Fill from file" press, kept 90 days. Doubles as the rate-limit counter,
+/// One row per extraction attempt, kept 90 days. Doubles as the rate-limit counter,
 /// so limits survive a restart. Holds no IP address: only a keyed hash and a truncated
 /// prefix (see src/http/clientIp.ts). No FK to Supplier on purpose — the log must
 /// outlive supplier deletion and the nightly demo reseed.

@@ -61,7 +61,7 @@ async function finishAttempt(
 }
 
 /**
- * "Fill from file": suggests field values for the certificate upload form. It writes no
+ * AI extraction: suggests field values for the certificate upload form. It writes no
  * certificate and stores no file — the only write is the attempt log, which is also
  * the rate limiter.
  *
