@@ -253,7 +253,8 @@ client key — no addresses. The runtime image has no TypeScript, so the report 
 through the tools image:
 
 ```bash
-docker compose -f docker-compose.prod.yml --profile tools run --rm \n  --entrypoint "npm run llm:attempts -w @clearchain/backend" migrate
+docker compose -f docker-compose.prod.yml --profile tools run --rm \
+  --entrypoint "npm run llm:attempts -w @clearchain/backend" migrate
 ```
 
 Rows older than 90 days are deleted automatically. The nightly reset does not touch

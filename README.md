@@ -87,7 +87,7 @@ docker compose down      # add -v to wipe the database volume
 ## Testing
 
 ```bash
-npm test                  # 187 unit tests, no infrastructure, no API key
+npm test                  # 191 unit tests, no infrastructure, no API key
 npm run test:integration  # 106 API tests against clearchain_test
 npm run eval:extract -w @clearchain/backend   # model eval — calls the real API, costs cents
 ```
