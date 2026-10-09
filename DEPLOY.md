@@ -110,6 +110,23 @@ Two things to get right:
 - **`PUBLIC_ORIGIN` must match how the site is actually reached**, scheme included, or
   the browser rejects the CORS responses.
 
+**Optional — AI-assisted extraction.** Leave `ANTHROPIC_API_KEY` empty and "Fill from
+file" shows as disabled; nothing else changes. To turn it on, create a key in a
+dedicated workspace at [platform.claude.com](https://platform.claude.com), give that
+workspace a monthly spend limit, and set:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | empty (off) | the key; never commit it |
+| `ANTHROPIC_MODEL` | `claude-sonnet-5-5` | chosen by the eval — see DESIGN.md |
+| `LLM_DAILY_LIMIT_PER_IP` | `8` | calls per client per UTC day |
+| `LLM_DAILY_LIMIT_GLOBAL` | `15` | calls for the whole site per UTC day |
+
+The per-client limit relies on the real visitor address, which nginx restores from
+Cloudflare's `CF-Connecting-IP` header (`docker/nginx/app.ssl.conf`). That only trusts
+Cloudflare's published ranges; if Cloudflare ever adds one
+([cloudflare.com/ips](https://www.cloudflare.com/ips/)), add it there too.
+
 ---
 
 ## 5 — Cloudflare: DNS and TLS
@@ -230,6 +247,17 @@ Add this to the server's crontab (`crontab -e`):
 `0 3 * * *` is 03:00 in the server's system time — confirm that's UTC (or whichever
 timezone you want) with `timedatectl` first. Check `/var/log/clearchain-reset.log` if
 the demo data ever looks stale or the reset silently stops running.
+
+**Who has used AI extraction.** The attempt log holds outcomes, tokens and a hashed
+client key — no addresses. The runtime image has no TypeScript, so the report runs
+through the tools image:
+
+```bash
+docker compose -f docker-compose.prod.yml --profile tools run --rm \n  --entrypoint "npm run llm:attempts -w @clearchain/backend" migrate
+```
+
+Rows older than 90 days are deleted automatically. The nightly reset does not touch
+this table.
 
 **Logs and restart:**
 

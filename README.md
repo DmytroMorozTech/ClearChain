@@ -48,6 +48,10 @@ the tests, not the feature count. The reasoning behind each of these is in
 - **Uploads treated as hostile.** Files are validated by their leading bytes rather than
   the `Content-Type` a client sent, stored under a UUID key, and always served with
   `Content-Disposition: attachment` and `nosniff`.
+- **AI-assisted certificate extraction.** Claude reads an uploaded certificate and
+  pre-fills the form; every value is schema-validated, checked against a verbatim quote
+  from the document and confirmed by the user before anything is saved. The model was
+  chosen on a 25-document eval set, with daily limits that cap the cost.
 
 ---
 
@@ -83,8 +87,9 @@ docker compose down      # add -v to wipe the database volume
 ## Testing
 
 ```bash
-npm test                  # 97 unit tests, no infrastructure
-npm run test:integration  # 87 API tests against clearchain_test
+npm test                  # 187 unit tests, no infrastructure, no API key
+npm run test:integration  # 106 API tests against clearchain_test
+npm run eval:extract -w @clearchain/backend   # model eval — calls the real API, costs cents
 ```
 
 The suites are split so that `npm test` works on a machine with nothing installed but
@@ -103,6 +108,8 @@ backend/
   src/services/    business operations; transactions live here
   src/http/        routes, zod schemas, serializers, error envelope
   src/storage/     FileStorage interface + local and S3 drivers
+  src/llm/         AI extraction: client, prompt, output schema, validation
+  eval/            synthetic certificate set, ground truth, eval runner, results
   prisma/          schema, migrations, deterministic seed
   tests/           API tests against a real database
 frontend/
@@ -116,6 +123,6 @@ frontend/
 ## Further reading
 
 - **[DESIGN.md](DESIGN.md)** — the rules, the invariants, and why each decision was made:
-  scoring, compliance, ERP sync, hierarchy, storage, authentication, and the production
-  image.
+  scoring, compliance, ERP sync, hierarchy, storage, authentication, AI extraction, and
+  the production image.
 - **[DEPLOY.md](DEPLOY.md)** — step-by-step deployment runbook.

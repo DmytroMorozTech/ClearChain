@@ -43,6 +43,12 @@ services:
       AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH}
       AUTH_SECRET: ${AUTH_SECRET}
       DEMO_READONLY: ${DEMO_READONLY:-false}
+      # AI extraction ("Fill from file"). No key → the feature reports itself disabled.
+      # The limits need their defaults spelled out here: an empty value would parse as 0.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+      LLM_DAILY_LIMIT_PER_IP: ${LLM_DAILY_LIMIT_PER_IP:-8}
+      LLM_DAILY_LIMIT_GLOBAL: ${LLM_DAILY_LIMIT_GLOBAL:-15}
       CORS_ORIGIN: ${PUBLIC_ORIGIN}
       # One proxy in front: the web service below.
       TRUST_PROXY_HOPS: 1

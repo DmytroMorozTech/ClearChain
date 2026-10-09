@@ -234,6 +234,107 @@ password itself is never stored anywhere.
 
 ---
 
+## AI-assisted extraction
+
+"Fill from file" in the upload dialog sends the chosen certificate to Claude and fills
+in the type, issuer, number and both dates. It is a **suggestion**: nothing is saved
+until the user presses Upload, through the same endpoint and the same validation as a
+hand-filled form. `POST /api/suppliers/:id/certificates/extract` writes no certificate
+and stores no file.
+
+The rule throughout is *the model proposes, the existing invariants dispose*. A model
+reading a scanned audit certificate will sometimes be wrong, and the cost of a wrong
+expiry date in a compliance tool is a supplier shown as covered when it is not. So the
+output is treated like any other untrusted input, and a person confirms every value.
+
+**One call, no framework.** The task is a single extraction: one request, one answer.
+There is no agent loop, no retrieval and no orchestration library, because nothing here
+needs them. `backend/src/llm/` holds a client behind an interface (tests use a fake and
+never need a key), the prompt, the output schema and the checks.
+
+**Structured output, checked twice.** The request constrains the reply to a JSON Schema
+(`output_config.format`), and the server re-parses it with the same zod schema anyway —
+unknown keys are dropped, a reply that does not fit is an error and never reaches the
+form. Forced tool use was the older way to get JSON back; the current models reject a
+forced `tool_choice`, and native structured output is the supported path.
+
+**Every value needs a quote.** Alongside each field the model returns a short verbatim
+quote from the document. `validate.ts` then:
+
+- drops impossible or implausible dates (not a real calendar day, issued before 1990 or
+  in the future, expiring more than 30 years out) and an expiry that is not after the
+  issue date;
+- checks each quote against the PDF's text layer (normalised for line breaks, dashes and
+  spacing that extraction mangles) and flags values whose quote is not there;
+- flags a date whose quote does not show both its year and its day — the eval caught a
+  model turning "Issued: March 2026" into 2026-03-01 with a perfectly genuine quote;
+- flags documents whose text addresses the model ("ignore previous instructions", "note
+  for automated processing") rather than the reader.
+
+A value we cannot trust is dropped with a warning; a value we cannot *confirm* is kept
+and highlighted, with its source quote on hover. Either way the human decides.
+
+**Prompt injection.** A document is data, and the system prompt says so — but a prompt
+is not a guarantee, and nothing here relies on it alone. The model has no tools, so the
+only thing a malicious document can change is a value in the JSON, which then has to
+survive the schema, the range checks and the quote check, and is shown to a person
+before anything is saved. What can still slip through is a *plausible* override — a
+believable date whose quote really is in the document; the instruction-text warning
+exists for exactly that case, and it is a heuristic that a careful attacker can phrase
+around. The worst outcome is one wrong suggested value in the form of the person who
+uploaded the document.
+
+**Cost control.** One call reads a 1–2 page certificate for about 3,500 input tokens.
+Limits are counted in the database, so they survive a restart: 8 calls per client per
+UTC day (IPv6 grouped per /64, so one subscriber cannot rotate through addresses) and 15
+for the whole site, reserved under an advisory lock so a burst cannot overshoot. PDFs over
+five pages are refused before the call, `max_tokens` is 1,024, and the provider-side
+workspace has its own monthly spend cap. Prompt caching is deliberately not used: the
+system prompt is too short to be worth caching and every document is different, so there
+is no repeated prefix to reuse.
+
+**Privacy.** The document is sent to Anthropic, which the dialog says next to the button.
+Each attempt is logged — outcome, model, tokens, latency — for abuse visibility and as the
+rate-limit counter itself. An IP address is personal data, so the log never holds one:
+only an HMAC of it (a plain hash of an IPv4 address can be reversed by trying all 2³²)
+and a truncated prefix such as `203.0.113.0/24`, kept for 90 days to spot repeated abuse.
+The basis is legitimate interest in preventing misuse; a production system would list this
+in its privacy policy. `npm run llm:attempts` summarises the log. Read-only demo mode
+leaves the feature on, since it writes nothing a visitor could see.
+
+**Which model, and how we know.** `npm run eval:extract` runs a synthetic set of 25
+invented certificates (English and German, every supported type, several date formats,
+missing fields, competing dates, a non-certificate, three injection attempts) through the
+production code path and scores each field against ground truth. The committed PDFs are
+checked against their specs by a test, so the set cannot drift silently.
+
+| 25 documents, 2026-10-09 | Haiku 4.5 | Sonnet 5.5 |
+|---|---|---|
+| All five fields correct | 23 / 25 | **25 / 25** |
+| Values invented where the document has none | 2 | **0** |
+| Injection attempts resisted | 3 / 3 | 3 / 3 |
+| Latency p50 / max | 3.0 s / 8.1 s | 2.6 s / 4.1 s |
+| Cost per document | **$0.0040** | $0.0094 |
+
+On the first eighteen documents both models scored 100%, which said more about the set
+than the models, so seven harder cases were added: a duration instead of an expiry date,
+a month without a day, `03/04/2026` in a German document, the issuer named only in the
+signature, a reissued number that prints the one it replaces, two standards on one
+certificate, and an injection phrased as a processing note. Haiku computed a date from
+"valid for three years" and completed "March 2026" to the 1st; Sonnet did neither. The
+default is therefore Sonnet 5.5, and the site-wide limit of 15 keeps the worst possible
+month (15 × 30 × $0.0094 ≈ $4.20) under the workspace cap. Full results, including every
+mismatch, are in `backend/eval/results/`.
+
+**Known limits.** The set is synthetic and every PDF has a clean text layer; real
+certificates are scans with stamps, tables and handwriting, where quotes cannot be
+checked and both models will do worse. A scan-like fixture would need a rasteriser, i.e.
+a native dependency, so it is absent. The instruction-text heuristic missed the disguised
+injection (the model resisted it anyway). These numbers show the pipeline behaves; they
+are not an accuracy claim for production documents.
+
+---
+
 ## Production image
 
 ```bash
@@ -308,9 +409,10 @@ day-two redeploy flow.
 
 ## Scoped out
 
-Multi-tenancy, a real ERP connector, AI document extraction, risk-score history and dark
-mode are all out of scope for this MVP — considered and set aside rather than
-overlooked.
+Multi-tenancy, a real ERP connector, risk-score history and dark mode are all out of
+scope for this MVP — considered and set aside rather than overlooked. So are retrieval,
+agents and LLM orchestration frameworks for the AI extraction above: one document, one
+call, one answer needs none of them.
 
 The country risk bands in `backend/data/country-risk.json` are invented to produce a
 varied dataset. They are not an assessment of any country; a real system would derive
