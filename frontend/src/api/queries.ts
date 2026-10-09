@@ -220,13 +220,23 @@ export const useExtractionStatus = (enabled: boolean) =>
 export const useExtractCertificate = () => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ supplierId, file }: { supplierId: string; file: File }) => {
+    mutationFn: ({
+      supplierId,
+      file,
+      signal,
+    }: {
+      supplierId: string;
+      file: File;
+      /** Lets the dialog's Cancel stop waiting. The server-side call still completes. */
+      signal?: AbortSignal;
+    }) => {
       const form = new FormData();
       form.set('file', file);
       return api.post(
         `/suppliers/${supplierId}/certificates/extract`,
         extractionResponseSchema,
         form,
+        signal,
       );
     },
     onSettled: () => client.invalidateQueries({ queryKey: queryKeys.extractionStatus }),

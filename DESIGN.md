@@ -240,10 +240,13 @@ password itself is never stored anywhere.
 
 ## AI-assisted extraction
 
-"Fill from file" in the upload dialog sends the chosen certificate to Claude and fills
-in the type, issuer, number and both dates. It is a **suggestion**: nothing is saved
-until the user presses Upload, through the same endpoint and the same validation as a
-hand-filled form. `POST /api/suppliers/:id/certificates/extract` writes no certificate
+Choosing a file in the upload dialog sends the certificate to Claude, and the form
+opens already filled in — type, issuer, number and both dates — for the user to review.
+It is a **suggestion**: nothing is saved until the user presses Save, through the same
+endpoint and the same validation as a hand-filled form. Manual entry is one click away
+at every step, and any failure (feature off, limit reached, unreadable file) lands on
+the empty form with the reason, never on a dead end. The frontend only sees "suggested
+values", so the model behind them could be replaced by plain OCR without touching it. `POST /api/suppliers/:id/certificates/extract` writes no certificate
 and stores no file.
 
 The rule throughout is *the model proposes, the existing invariants dispose*. A model
@@ -299,7 +302,7 @@ workspace has its own monthly spend cap. Prompt caching is deliberately not used
 system prompt is too short to be worth caching and every document is different, so there
 is no repeated prefix to reuse.
 
-**Privacy.** The document is sent to Anthropic, which the dialog says next to the button.
+**Privacy.** The document is sent to Anthropic, which the dialog says before a file is chosen.
 Each attempt is logged — outcome, model, tokens, latency — for abuse visibility and as the
 rate-limit counter itself. An IP address is personal data, so the log never holds one:
 only an HMAC of it (a plain hash of an IPv4 address can be reversed by trying all 2³²)

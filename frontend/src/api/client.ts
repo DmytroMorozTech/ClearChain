@@ -108,8 +108,12 @@ export const api = {
   get: <T extends ZodType>(path: string, schema: T, signal?: AbortSignal) =>
     request(path, schema, signal ? { signal } : {}),
 
-  post: <T extends ZodType>(path: string, schema: T, body?: unknown) =>
-    request(path, schema, { method: 'POST', ...(body !== undefined ? { body } : {}) }),
+  post: <T extends ZodType>(path: string, schema: T, body?: unknown, signal?: AbortSignal) =>
+    request(path, schema, {
+      method: 'POST',
+      ...(body !== undefined ? { body } : {}),
+      ...(signal ? { signal } : {}),
+    }),
 
   patch: <T extends ZodType>(path: string, schema: T, body: unknown) =>
     request(path, schema, { method: 'PATCH', body }),

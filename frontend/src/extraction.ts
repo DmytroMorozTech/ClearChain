@@ -1,8 +1,13 @@
 import { ApiError } from './api/client.ts';
-import type { CertificateType, ExtractableField, ExtractionResponse } from './api/schemas.ts';
+import type {
+  CertificateType,
+  ExtractableField,
+  ExtractionResponse,
+  ExtractionStatus,
+} from './api/schemas.ts';
 
 /**
- * The client half of "Fill from file": how a suggestion lands in the form and which
+ * The client half of AI extraction: how a suggestion lands in the form and which
  * fields deserve a second look. Kept out of the dialog so the rules can be tested
  * without rendering anything.
  */
@@ -83,6 +88,21 @@ export function fieldFlags(
   }
 
   return flags;
+}
+
+/**
+ * What happens once a file is chosen: read it, or go straight to the form.
+ *
+ * An unknown status (still loading, or the status call failed) is not a reason to skip
+ * extraction — the server is the authority, and any refusal lands the user on the
+ * manual form with an explanation anyway.
+ */
+export type FilePlan = 'extract' | 'manual' | 'manual-quota';
+
+export function planForChosenFile(status: ExtractionStatus | undefined): FilePlan {
+  if (status === undefined) return 'extract';
+  if (!status.enabled) return 'manual';
+  return status.remainingToday > 0 ? 'extract' : 'manual-quota';
 }
 
 export function extractionErrorMessage(error: unknown): string {

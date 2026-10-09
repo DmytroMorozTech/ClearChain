@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError } from './api/client.ts';
 import type { ExtractionResponse } from './api/schemas.ts';
-import { extractionErrorMessage, fieldFlags, mergeSuggestion } from './extraction.ts';
+import {
+  extractionErrorMessage,
+  fieldFlags,
+  mergeSuggestion,
+  planForChosenFile,
+} from './extraction.ts';
 
 const current = {
   type: 'CSRD' as const,
@@ -83,6 +88,31 @@ describe('fieldFlags', () => {
       verification: { type: 'unverifiable', expiryDate: 'unverifiable' },
     });
     expect(Object.keys(flags).sort()).toEqual(['expiryDate', 'type']);
+  });
+});
+
+describe('planForChosenFile', () => {
+  const status = (enabled: boolean, remainingToday: number) => ({
+    enabled,
+    model: enabled ? 'claude-sonnet-5-5' : null,
+    remainingToday,
+    resetsAt: '2026-10-10T00:00:00.000Z',
+  });
+
+  it('reads the file when extraction is on and calls are left', () => {
+    expect(planForChosenFile(status(true, 3))).toBe('extract');
+  });
+
+  it('goes straight to manual entry when extraction is switched off', () => {
+    expect(planForChosenFile(status(false, 0))).toBe('manual');
+  });
+
+  it('goes to manual entry, saying why, when today’s calls are used up', () => {
+    expect(planForChosenFile(status(true, 0))).toBe('manual-quota');
+  });
+
+  it('leaves the decision to the server while the status is still unknown', () => {
+    expect(planForChosenFile(undefined)).toBe('extract');
   });
 });
 
