@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "eval:fixtures": "node eval/generate-fixtures.ts"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

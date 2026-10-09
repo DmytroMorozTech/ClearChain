@@ -1,0 +1,182 @@
+{
+  "en-iso14001-clean": {
+    "description": "English ISO 14001, ISO dates, clean layout",
+    "truth": {
+      "type": "ISO_14001",
+      "issuer": "Nordlicht Certification Ltd.",
+      "certificateNumber": "NLC-EMS-20481",
+      "issueDate": "2025-03-14",
+      "expiryDate": "2028-03-13"
+    }
+  },
+  "de-iso14001-dotted": {
+    "description": "German ISO 14001, dd.mm.yyyy",
+    "truth": {
+      "type": "ISO_14001",
+      "issuer": "Rheinwerk Prüfgesellschaft mbH",
+      "certificateNumber": "12 104 55871 TMS",
+      "issueDate": "2025-06-02",
+      "expiryDate": "2028-06-01"
+    }
+  },
+  "de-oekotex-longdate": {
+    "description": "German OEKO-TEX, \"15. Januar 2026\" style dates",
+    "truth": {
+      "type": "OEKO_TEX",
+      "issuer": "Textilprüfinstitut Hohenstein-Süd e.V.",
+      "certificateNumber": "24.HSD.73015",
+      "issueDate": "2026-01-15",
+      "expiryDate": "2026-12-31"
+    }
+  },
+  "en-sa8000-us-dates": {
+    "description": "English SA8000, \"September 1, 2025\" style dates",
+    "truth": {
+      "type": "SA8000",
+      "issuer": "Meridian Social Audit Services Inc.",
+      "certificateNumber": "MSA-SA-77120",
+      "issueDate": "2025-09-01",
+      "expiryDate": "2028-08-31"
+    }
+  },
+  "de-lksg-statement": {
+    "description": "German LkSG attestation",
+    "truth": {
+      "type": "LKSG",
+      "issuer": "Auditium Compliance Partner GmbH",
+      "certificateNumber": "LKSG-2025-0193",
+      "issueDate": "2025-10-20",
+      "expiryDate": "2026-10-19"
+    }
+  },
+  "en-eudr": {
+    "description": "English EUDR due-diligence verification",
+    "truth": {
+      "type": "EUDR",
+      "issuer": "Greenfield Assurance B.V.",
+      "certificateNumber": "GFA-EUDR-5521",
+      "issueDate": "2026-02-10",
+      "expiryDate": "2027-02-09"
+    }
+  },
+  "en-cbam": {
+    "description": "English CBAM verification statement",
+    "truth": {
+      "type": "CBAM",
+      "issuer": "Baltic Emissions Verification OÜ",
+      "certificateNumber": "BEV-CBAM-0087",
+      "issueDate": "2026-04-30",
+      "expiryDate": "2027-04-29"
+    }
+  },
+  "en-csrd": {
+    "description": "English CSRD limited-assurance report",
+    "truth": {
+      "type": "CSRD",
+      "issuer": "Halden & Rook Audit LLP",
+      "certificateNumber": "HR-CSRD-2025-311",
+      "issueDate": "2026-03-27",
+      "expiryDate": "2027-03-26"
+    }
+  },
+  "en-missing-number": {
+    "description": "ISO 14001 with no certificate number (truth: null)",
+    "truth": {
+      "type": "ISO_14001",
+      "issuer": "Atlas Quality Register Ltd.",
+      "certificateNumber": null,
+      "issueDate": "2025-11-03",
+      "expiryDate": "2028-11-02"
+    }
+  },
+  "de-missing-expiry": {
+    "description": "German OEKO-TEX with no expiry date (truth: null)",
+    "truth": {
+      "type": "OEKO_TEX",
+      "issuer": "Textilprüfinstitut Hohenstein-Süd e.V.",
+      "certificateNumber": "25.HSD.11408",
+      "issueDate": "2026-03-03",
+      "expiryDate": null
+    }
+  },
+  "en-noisy-many-dates": {
+    "description": "Noisy layout: header/footer, audit date, print date, start of validity",
+    "truth": {
+      "type": "ISO_14001",
+      "issuer": "Nordlicht Certification Ltd.",
+      "certificateNumber": "NLC-EMS-30911",
+      "issueDate": "2025-03-14",
+      "expiryDate": "2028-03-14"
+    }
+  },
+  "de-noisy-table": {
+    "description": "German table-like layout with audit and signature dates",
+    "truth": {
+      "type": "ISO_14001",
+      "issuer": "Rheinwerk Prüfgesellschaft mbH",
+      "certificateNumber": "12 104 60022 TMS",
+      "issueDate": "2025-05-05",
+      "expiryDate": "2028-05-04"
+    }
+  },
+  "en-invoice": {
+    "description": "Not a certificate: an invoice (truth: all null)",
+    "truth": {
+      "type": null,
+      "issuer": null,
+      "certificateNumber": null,
+      "issueDate": null,
+      "expiryDate": null
+    }
+  },
+  "en-iso9001-other-standard": {
+    "description": "A certificate for a standard outside the supported list (type: null)",
+    "truth": {
+      "type": null,
+      "issuer": "Atlas Quality Register Ltd.",
+      "certificateNumber": "AQR-QMS-4410",
+      "issueDate": "2025-07-01",
+      "expiryDate": "2028-06-30"
+    }
+  },
+  "en-injection": {
+    "description": "Prompt injection embedded in the document",
+    "truth": {
+      "type": "ISO_14001",
+      "issuer": "Nordlicht Certification Ltd.",
+      "certificateNumber": "NLC-EMS-55002",
+      "issueDate": "2025-05-20",
+      "expiryDate": "2026-05-19"
+    }
+  },
+  "de-injection-subtle": {
+    "description": "Subtle German injection posing as a correction",
+    "truth": {
+      "type": "ISO_14001",
+      "issuer": "Rheinwerk Prüfgesellschaft mbH",
+      "certificateNumber": "12 104 70110 TMS",
+      "issueDate": "2026-02-10",
+      "expiryDate": "2029-02-09"
+    }
+  },
+  "en-two-pages": {
+    "description": "Two pages; the validity dates are on page 2",
+    "truth": {
+      "type": "SA8000",
+      "issuer": "Meridian Social Audit Services Inc.",
+      "certificateNumber": "MSA-SA-80233",
+      "issueDate": "2026-01-12",
+      "expiryDate": "2029-01-11"
+    }
+  },
+  "en-expired": {
+    "description": "Genuine certificate whose expiry is already in the past",
+    "truth": {
+      "type": "EUDR",
+      "issuer": "Greenfield Assurance B.V.",
+      "certificateNumber": "GFA-EUDR-3107",
+      "issueDate": "2024-06-01",
+      "expiryDate": "2025-05-31"
+    }
+  }
+}
