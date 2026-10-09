@@ -19,7 +19,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "eval:fixtures": "node eval/generate-fixtures.ts"
+    "eval:fixtures": "node eval/generate-fixtures.ts",
+    "eval:extract": "node eval/run-eval.ts"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
