@@ -60,17 +60,36 @@ export function toLlmError(error: unknown): LlmError {
 /** Five short fields and five short quotes fit comfortably; a runaway answer is cut off. */
 const MAX_OUTPUT_TOKENS = 1024;
 
+export interface AnthropicClientOptions {
+  apiKey: string;
+  model: string;
+  /** Per attempt. */
+  timeoutMs: number;
+  maxRetries: number;
+  /**
+   * Ceiling for the whole call, retries and their waits included. Per-attempt timeouts
+   * alone do not bound it: the SDK honours a provider's `retry-after`, so a rate-limited
+   * first attempt can wait tens of seconds before the second even starts.
+   */
+  deadlineMs?: number;
+  /** Tests point this at a local server; production leaves it unset. */
+  baseURL?: string;
+}
+
 export class AnthropicLlmClient implements LlmClient {
   readonly model: string;
   private readonly sdk: Anthropic;
+  private readonly deadlineMs: number | undefined;
 
-  constructor(options: { apiKey: string; model: string; timeoutMs: number; maxRetries: number }) {
+  constructor(options: AnthropicClientOptions) {
     this.model = options.model;
+    this.deadlineMs = options.deadlineMs;
     // The SDK's own retry (with backoff) and timeout, rather than a loop of our own.
     this.sdk = new Anthropic({
       apiKey: options.apiKey,
       timeout: options.timeoutMs,
       maxRetries: options.maxRetries,
+      ...(options.baseURL !== undefined ? { baseURL: options.baseURL } : {}),
     });
   }
 
@@ -83,17 +102,20 @@ export class AnthropicLlmClient implements LlmClient {
 
     let response: Anthropic.Message;
     try {
-      response = await this.sdk.messages.create({
-        model: this.model,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: [source, { type: 'text', text: USER_INSTRUCTION }] }],
-        output_config: {
-          format: { type: 'json_schema', schema: MODEL_OUTPUT_JSON_SCHEMA },
-          // Haiku 4.5 rejects `effort`; newer models think by default and only need it lowered.
-          ...(this.model.startsWith('claude-haiku') ? {} : { effort: 'low' as const }),
+      response = await this.sdk.messages.create(
+        {
+          model: this.model,
+          max_tokens: MAX_OUTPUT_TOKENS,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: [source, { type: 'text', text: USER_INSTRUCTION }] }],
+          output_config: {
+            format: { type: 'json_schema', schema: MODEL_OUTPUT_JSON_SCHEMA },
+            // Haiku 4.5 rejects `effort`; newer models think by default and only need it lowered.
+            ...(this.model.startsWith('claude-haiku') ? {} : { effort: 'low' as const }),
+          },
         },
-      });
+        this.deadlineMs !== undefined ? { signal: AbortSignal.timeout(this.deadlineMs) } : {},
+      );
     } catch (error) {
       throw toLlmError(error);
     }

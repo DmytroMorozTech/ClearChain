@@ -31,8 +31,10 @@ function llmClientFromEnv(): LlmClient | null {
     apiKey: env.ANTHROPIC_API_KEY,
     model: env.ANTHROPIC_MODEL,
     timeoutMs: env.LLM_TIMEOUT_MS,
-    // One retry keeps the worst case (2 × timeout) under nginx's 60 s proxy timeout.
     maxRetries: 1,
+    // nginx gives up on the API after 60 s and the user would see a bare 504. Ending
+    // the call first means they get the readable "fill it in manually" message instead.
+    deadlineMs: 45_000,
   });
 }
 
