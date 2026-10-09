@@ -5,6 +5,7 @@ import type { ExtractionResponse } from './api/schemas.ts';
 import {
   extractionErrorMessage,
   fieldFlags,
+  findLikelyDuplicates,
   mergeSuggestion,
   planForChosenFile,
 } from './extraction.ts';
@@ -129,5 +130,38 @@ describe('extractionErrorMessage', () => {
       /fill in the fields manually/,
     );
     expect(extractionErrorMessage(new Error('network'))).toMatch(/fill in the fields manually/);
+  });
+});
+
+describe('findLikelyDuplicates', () => {
+  const existing = [
+    { type: 'SA8000' as const, certificateNumber: 'SA8000-95023', expiryDate: '2027-07-19' },
+    { type: 'ISO_14001' as const, certificateNumber: 'ISO-37923', expiryDate: '2026-11-19' },
+    { type: 'OEKO_TEX' as const, certificateNumber: null, expiryDate: '2028-07-29' },
+  ];
+
+  it('finds a certificate of the same type with the same number', () => {
+    expect(
+      findLikelyDuplicates(existing, { type: 'SA8000', certificateNumber: 'SA8000-95023' }),
+    ).toEqual([existing[0]]);
+  });
+
+  it('ignores case, spaces and punctuation in the number', () => {
+    expect(
+      findLikelyDuplicates(existing, { type: 'SA8000', certificateNumber: ' sa8000 95023 ' }),
+    ).toHaveLength(1);
+  });
+
+  it('does not match the same number under a different type', () => {
+    expect(
+      findLikelyDuplicates(existing, { type: 'ISO_14001', certificateNumber: 'SA8000-95023' }),
+    ).toEqual([]);
+  });
+
+  it('never matches on a blank number — two unnumbered certificates are not evidence', () => {
+    expect(findLikelyDuplicates(existing, { type: 'OEKO_TEX', certificateNumber: '' })).toEqual([]);
+    expect(findLikelyDuplicates(existing, { type: 'OEKO_TEX', certificateNumber: '  ' })).toEqual(
+      [],
+    );
   });
 });

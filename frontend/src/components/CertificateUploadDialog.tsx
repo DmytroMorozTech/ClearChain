@@ -24,13 +24,15 @@ import {
 } from '../api/queries.ts';
 import type { CertificateType, ExtractableField, ExtractionResponse } from '../api/schemas.ts';
 import {
+  type ExistingCertificate,
   type FormFields,
   extractionErrorMessage,
   fieldFlags,
+  findLikelyDuplicates,
   mergeSuggestion,
   planForChosenFile,
 } from '../extraction.ts';
-import { CERTIFICATE_LABELS, formatFileSize } from '../format.ts';
+import { CERTIFICATE_LABELS, formatDate, formatFileSize } from '../format.ts';
 import { InfoNote } from './InfoNote.tsx';
 
 const TYPES = Object.keys(CERTIFICATE_LABELS) as CertificateType[];
@@ -104,12 +106,15 @@ type Step = 'choose' | 'reading' | 'review';
 
 interface CertificateUploadDialogProps {
   supplierId: string;
+  /** What the supplier already holds, to warn before saving what looks like a repeat. */
+  existingCertificates?: readonly ExistingCertificate[];
   open: boolean;
   onClose: () => void;
 }
 
 export function CertificateUploadDialog({
   supplierId,
+  existingCertificates = [],
   open,
   onClose,
 }: CertificateUploadDialogProps) {
@@ -144,6 +149,8 @@ export function CertificateUploadDialog({
   const flags = extracted === null ? {} : fieldFlags(extracted);
   const generalWarnings = extracted?.warnings.filter((warning) => warning.field === null) ?? [];
   const needsCheck = generalWarnings.length > 0 || Object.keys(flags).length > 0;
+  // Recomputed as the user edits, so correcting the number clears the warning.
+  const duplicates = findLikelyDuplicates(existingCertificates, { type, certificateNumber });
   const aiOn = status.data?.enabled !== false;
 
   const error = upload.error;
@@ -522,6 +529,18 @@ export function CertificateUploadDialog({
                   />
                 </SourceQuote>
               </Stack>
+
+              {duplicates.length > 0 && (
+                <Alert severity="warning">
+                  This supplier already has {CERTIFICATE_LABELS[type]}{' '}
+                  {duplicates[0]?.certificateNumber ?? certificateNumber.trim()}
+                  {duplicates.length === 1
+                    ? `, valid until ${formatDate(duplicates[0]?.expiryDate ?? '')}`
+                    : ` on file ${String(duplicates.length)} times`}
+                  . Saving adds another record — fine for a renewal; if this is the same
+                  certificate, cancel instead.
+                </Alert>
+              )}
 
               <InfoNote>
                 An expiry date in the past is accepted — it is filed as a historical record and

@@ -448,6 +448,7 @@ export function SupplierDetailPage() {
 
       <CertificateUploadDialog
         supplierId={id}
+        existingCertificates={data.certificates}
         open={uploadOpen}
         onClose={() => {
           setUploadOpen(false);

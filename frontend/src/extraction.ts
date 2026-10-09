@@ -90,6 +90,36 @@ export function fieldFlags(
   return flags;
 }
 
+/** Just enough of an existing certificate to recognise it again. */
+export interface ExistingCertificate {
+  type: CertificateType;
+  certificateNumber: string | null;
+  expiryDate: string;
+}
+
+/** "SA8000-95023", "sa8000 95023" and "SA8000 / 95023" are the same number to a reader. */
+const comparableNumber = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Certificates the supplier already has that look like the one being saved: same type,
+ * same number. A warning, never a block — certification bodies often keep the number
+ * when they renew, so a match can be a legitimate new cycle as easily as a re-upload,
+ * and only the person saving it knows which.
+ */
+export function findLikelyDuplicates<T extends ExistingCertificate>(
+  existing: readonly T[],
+  candidate: { type: CertificateType; certificateNumber: string },
+): T[] {
+  const number = comparableNumber(candidate.certificateNumber);
+  if (number === '') return [];
+  return existing.filter(
+    (certificate) =>
+      certificate.type === candidate.type &&
+      certificate.certificateNumber !== null &&
+      comparableNumber(certificate.certificateNumber) === number,
+  );
+}
+
 /**
  * What happens once a file is chosen: read it, or go straight to the form.
  *

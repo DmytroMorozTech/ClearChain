@@ -283,6 +283,11 @@ quote from the document. `validate.ts` then:
 A value we cannot trust is dropped with a warning; a value we cannot *confirm* is kept
 and highlighted, with its source quote on hover. Either way the human decides.
 
+If the supplier already holds a certificate of the same type with the same number, the
+review step says so before saving. It is a warning, not a constraint: certification bodies
+often keep the number across a renewal, so a match is as likely a new cycle as a re-upload,
+and only the person saving it can tell which.
+
 **Prompt injection.** A document is data, and the system prompt says so — but a prompt
 is not a guarantee, and nothing here relies on it alone. The model has no tools, so the
 only thing a malicious document can change is a value in the JSON, which then has to
