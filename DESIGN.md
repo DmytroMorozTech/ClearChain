@@ -269,7 +269,9 @@ quote from the document. `validate.ts` then:
   in the future, expiring more than 30 years out) and an expiry that is not after the
   issue date;
 - checks each quote against the PDF's text layer (normalised for line breaks, dashes and
-  spacing that extraction mangles) and flags values whose quote is not there;
+  spacing that extraction mangles) and flags values whose quote is not there — or whose
+  quote is there but does not contain the value, since "Certificate No." is a genuine
+  line that vouches for no number in particular;
 - flags a date whose quote does not show both its year and its day — the eval caught a
   model turning "Issued: March 2026" into 2026-03-01 with a perfectly genuine quote;
 - flags documents whose text addresses the model ("ignore previous instructions", "note

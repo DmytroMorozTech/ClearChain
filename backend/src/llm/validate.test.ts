@@ -172,6 +172,45 @@ describe('validateExtraction', () => {
     expect(fieldsWarned(result)).not.toContain('issueDate');
   });
 
+  it('does not vouch for a value its quote does not contain', () => {
+    // A genuine line from the document, but it says nothing about this number.
+    const raw = output();
+    const result = validateExtraction(
+      {
+        ...raw,
+        certificateNumber: 'ZX-0001',
+        evidence: { ...raw.evidence, certificateNumber: 'Zertifikat-Nr.:' },
+      },
+      TEXT,
+      AS_OF,
+    );
+    expect(result.suggestion.certificateNumber).toBe('ZX-0001');
+    expect(result.verification.certificateNumber).not.toBe('verified');
+    expect(fieldsWarned(result)).toContain('certificateNumber');
+  });
+
+  it('accepts a value whose quote contains it despite spacing and case', () => {
+    const raw = output();
+    const result = validateExtraction(
+      { ...raw, issuer: 'tüv nord cert gmbh', evidence: { ...raw.evidence } },
+      TEXT,
+      AS_OF,
+    );
+    expect(result.verification.issuer).toBe('verified');
+    expect(fieldsWarned(result)).not.toContain('issuer');
+  });
+
+  it('treats an overlong quote as no quote', () => {
+    const raw = output();
+    const result = validateExtraction(
+      { ...raw, evidence: { ...raw.evidence, issuer: `TÜV Nord CERT GmbH ${'x'.repeat(250)}` } },
+      TEXT,
+      AS_OF,
+    );
+    expect(result.verification.issuer).toBe('missing');
+    expect(fieldsWarned(result)).toContain('issuer');
+  });
+
   it('trims strings and turns blank ones into null', () => {
     const result = validateExtraction(
       output({ issuer: '   ', certificateNumber: '  Z-2025-0042 ' }),

@@ -38,6 +38,8 @@ export interface ValidatedExtraction {
 export const MIN_DATE = '1990-01-01';
 export const MAX_EXPIRY_YEARS = 30;
 const MAX_LENGTH = { issuer: 200, certificateNumber: 100 } as const;
+/** The prompt asks for at most 120 characters; this leaves room without going slack. */
+const MAX_QUOTE_LENGTH = 200;
 
 const emptyEvidence = (): Record<FieldName, string | null> => ({
   type: null,
@@ -167,12 +169,23 @@ export function validateExtraction(
     const value = suggestion[field];
     if (value === null) continue;
 
-    const quote = raw.evidence[field]?.trim() || null;
+    const given = raw.evidence[field]?.trim() || null;
+    // A "quote" the length of a paragraph would be found in the document and prove
+    // nothing about the value, so an overlong one counts as no quote at all.
+    const quote = given !== null && given.length <= MAX_QUOTE_LENGTH ? given : null;
     evidence[field] = quote;
 
     if (quote === null) {
       verification[field] = 'missing';
       warn(field, 'No supporting quote from the document — check this value.');
+      continue;
+    }
+
+    // A genuine line of the document is only evidence if it actually contains the value:
+    // "Certificate No." is in the document, but it does not vouch for any number.
+    if ((field === 'issuer' || field === 'certificateNumber') && !quoteAppearsIn(value, quote)) {
+      verification[field] = 'not_found';
+      warn(field, 'The supporting quote does not contain this value — check it.');
       continue;
     }
 
