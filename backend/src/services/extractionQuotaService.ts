@@ -18,7 +18,6 @@ export interface QuotaLimits {
 
 export interface AttemptMeta {
   ipHash: string;
-  ipPrefix: string;
   supplierId: string;
   mimeType: string;
   fileSize: number;

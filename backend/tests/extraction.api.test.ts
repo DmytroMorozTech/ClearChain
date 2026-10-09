@@ -180,15 +180,16 @@ describe('POST /api/suppliers/:id/certificates/extract', () => {
     expect(stored).toEqual([]);
   });
 
-  it('records the attempt with a hash and prefix, never the raw address', async () => {
+  it('records the attempt with a hash only — no address and no part of one', async () => {
     const supplierId = await makeSupplier();
     await extract(supplierId, { ip: '198.51.100.7' });
     const rows = await prisma.llmExtractionAttempt.findMany();
     expect(rows).toHaveLength(1);
     expect(rows[0]?.outcome).toBe('SUCCESS');
-    expect(rows[0]?.ipPrefix).toBe('198.51.100.0/24');
     expect(rows[0]?.inputTokens).toBe(100);
-    expect(JSON.stringify(rows)).not.toContain('198.51.100.7');
+    expect(rows[0]?.ipHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(rows[0]).not.toHaveProperty('ipPrefix');
+    expect(JSON.stringify(rows)).not.toContain('198.51.100');
   });
 
   it('marks the attempt UPSTREAM_ERROR and answers 503 when the provider fails', async () => {

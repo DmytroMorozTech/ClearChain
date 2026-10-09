@@ -74,7 +74,7 @@ export function createExtractionRouter(deps: ExtractionDeps): Router {
 
   router.get('/extraction/status', async (req, res) => {
     const now = new Date();
-    const { hash } = clientKey(req.ip, deps.ipSecret);
+    const hash = clientKey(req.ip, deps.ipSecret, now);
     res.json({
       enabled: deps.llmClient !== null,
       model: deps.llmClient?.model ?? null,
@@ -138,11 +138,10 @@ export function createExtractionRouter(deps: ExtractionDeps): Router {
       }
 
       const now = new Date();
-      const key = clientKey(req.ip, deps.ipSecret);
+      const ipHash = clientKey(req.ip, deps.ipSecret, now);
       const decision = await reserveAttempt(
         {
-          ipHash: key.hash,
-          ipPrefix: key.prefix,
+          ipHash,
           supplierId: id,
           mimeType,
           fileSize: file.size,

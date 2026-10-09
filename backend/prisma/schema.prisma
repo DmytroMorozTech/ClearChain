@@ -153,14 +153,13 @@ enum LlmAttemptOutcome {
 }
 
 /// One row per extraction attempt, kept 90 days. Doubles as the rate-limit counter,
-/// so limits survive a restart. Holds no IP address: only a keyed hash and a truncated
-/// prefix (see src/http/clientIp.ts). No FK to Supplier on purpose — the log must
+/// so limits survive a restart. Holds no IP address and no part of one: only a keyed
+/// hash whose key changes every UTC day (see src/http/clientIp.ts). No FK to Supplier on purpose — the log must
 /// outlive supplier deletion and the nightly demo reseed.
 model LlmExtractionAttempt {
   id           String            @id @default(uuid()) @db.Uuid
   createdAt    DateTime          @default(now())
   ipHash       String
-  ipPrefix     String
   supplierId   String?           @db.Uuid
   mimeType     String
   fileSize     Int
