@@ -25,7 +25,7 @@ process.loadEnvFile?.(path.join(here, '..', '.env'));
 const apiKey = process.env.ANTHROPIC_API_KEY;
 if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set (backend/.env).');
 
-const models = (process.env.EVAL_MODELS ?? 'claude-haiku-4-5')
+const models = (process.env.EVAL_MODELS ?? 'claude-sonnet-5-5')
   .split(',')
   .map((model) => model.trim())
   .filter(Boolean);

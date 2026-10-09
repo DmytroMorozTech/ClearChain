@@ -51,9 +51,12 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value !== undefined && value.trim() !== '' ? value : undefined)),
-  ANTHROPIC_MODEL: z.string().min(1).default('claude-haiku-4-5'),
+  // Chosen by the eval (eval/results): on the harder documents Sonnet invented no
+  // values where Haiku invented two. Cost is held by the site-wide limit below.
+  ANTHROPIC_MODEL: z.string().min(1).default('claude-sonnet-5-5'),
   LLM_DAILY_LIMIT_PER_IP: z.coerce.number().int().min(0).default(8),
-  LLM_DAILY_LIMIT_GLOBAL: z.coerce.number().int().min(0).default(20),
+  // 15 × 30 days × ~$0.0094 per document ≈ $4.2: the worst month stays under a $5 cap.
+  LLM_DAILY_LIMIT_GLOBAL: z.coerce.number().int().min(0).default(15),
   LLM_MAX_PDF_PAGES: z.coerce.number().int().positive().default(5),
   // Per attempt; with one SDK retry the worst case stays under nginx's 60 s proxy timeout.
   LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),

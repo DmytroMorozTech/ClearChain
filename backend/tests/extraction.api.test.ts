@@ -235,9 +235,9 @@ describe('POST /api/suppliers/:id/certificates/extract', () => {
     expect(responses.filter((response) => response.status === 429)).toHaveLength(2);
   });
 
-  it('allows 20 calls per day across all clients, then answers 429 with scope "global"', async () => {
+  it('allows 15 calls per day across all clients, then answers 429 with scope "global"', async () => {
     const supplierId = await makeSupplier();
-    for (let call = 0; call < 20; call += 1) {
+    for (let call = 0; call < 15; call += 1) {
       const response = await extract(supplierId, { ip: `192.0.2.${String(call + 1)}` });
       expect(response.status).toBe(200);
     }
