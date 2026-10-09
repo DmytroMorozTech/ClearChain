@@ -221,9 +221,13 @@ solve it: a crawler never submits the form, but it still records the URL. `robot
 and a `noindex` meta tag handle that. Two tools, two problems, neither pretending to do
 the other's job.
 
-The demo credentials are documented in the README and travel with the link, not printed
-on the sign-in screen — putting them on the page would have been hanging the key on the
-door handle. To change the password:
+The demo credentials are documented in the README, and the sign-in screen offers an
+"Autofill demo credentials" button. That would be hanging the key on the door handle if
+the key guarded anything: it does not. The credentials were already public, so the
+button changes no exposure — it only saves a reviewer the trip to GitHub. What makes
+public credentials acceptable is that the damage they allow is bounded: the demo data is
+reseeded every night (see DEPLOY.md), and AI extraction has daily limits of its own. To
+change the password:
 
 ```bash
 npm run auth:hash -w @clearchain/backend -- "your password"
