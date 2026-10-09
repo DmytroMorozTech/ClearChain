@@ -140,8 +140,11 @@ backend/
   src/services/    business operations; transactions live here
   src/http/        routes, zod schemas, serializers, error envelope
   src/storage/     FileStorage interface + local and S3 drivers
+  src/llm/         AI extraction: model client, prompt, output schema, validation
   prisma/          schema, migrations, deterministic seed
   data/            country risk table, mock ERP export
+  eval/            synthetic certificate set, ground truth, eval runner and results
+  scripts/         one-off tools (password hash, extraction attempts report)
   tests/           API tests against a real database
 frontend/
   src/api/         typed client; responses validated with zod at the boundary
@@ -165,7 +168,11 @@ works on a machine with nothing installed but Node.
 Notable cases: risk scoring against the specification's own table at a frozen date; a
 certificate on the exact day it expires; a hierarchy cycle rejected with 409; a reparent
 that would push a grandchild past tier 3; sync run twice reporting nothing changed; and a
-sync failure that still leaves a `FAILED` log row behind.
+sync failure that still leaves a `FAILED` log row behind. For AI extraction: a model that
+obeys an injected instruction still cannot get its date into the form; ten parallel
+requests at the edge of the daily limit admit exactly eight; and a successful extraction
+leaves no certificate row and no stored file. None of these needs an API key — the model
+client is a fake behind an interface.
 
 ---
 
@@ -246,8 +253,8 @@ It is a **suggestion**: nothing is saved until the user presses Save, through th
 endpoint and the same validation as a hand-filled form. Manual entry is one click away
 at every step, and any failure (feature off, limit reached, unreadable file) lands on
 the empty form with the reason, never on a dead end. The frontend only sees "suggested
-values", so the model behind them could be replaced by plain OCR without touching it. `POST /api/suppliers/:id/certificates/extract` writes no certificate
-and stores no file.
+values", so the model behind them could be replaced by plain OCR without touching it.
+`POST /api/suppliers/:id/certificates/extract` writes no certificate and stores no file.
 
 The rule throughout is *the model proposes, the existing invariants dispose*. A model
 reading a scanned audit certificate will sometimes be wrong, and the cost of a wrong
@@ -315,8 +322,10 @@ be reversed by trying all 2³² — and the key changes at every UTC midnight. T
 daily, so counting still works; once the day is over, a row can no longer be matched to an
 address or even to the same client's other days, by anyone. The remaining rows are, in
 effect, anonymous usage statistics, kept for 90 days. nginx restores the real address for
-rate limiting but writes only a truncated one (`/24`) to its access log, and container logs
-rotate at 30 MB per service. Rate limiting by IP rests on legitimate interest in preventing
+rate limiting but writes only a truncated one to its access log (an IPv4 `/24`, the first
+two groups of an IPv6 address); its error log, whose format cannot be changed, may still
+name a client on a failed request, which is why container logs rotate at 30 MB per
+service. Rate limiting by IP rests on legitimate interest in preventing
 misuse; a production system would also list it, and the processors involved (hosting, CDN,
 the model provider), in its privacy policy. `npm run llm:attempts` summarises the log.
 Read-only demo mode leaves the feature on, since it writes nothing a visitor could see.
@@ -379,8 +388,8 @@ compiler**. Two details make that true:
   engine binaries to match against the base image.
 - `@prisma/client` declares `prisma` and `typescript` as *optional* peer dependencies.
   npm installs optional peers anyway, dragging in the CLI, Prisma Studio and the engine
-  downloader — around 230 MB the application never reaches. They are removed, which is
-  what takes the image from 894 MB to 596 MB.
+  downloader — around 230 MB the application never reaches. They are removed, and the
+  runtime image comes out at about 640 MB.
 
 Migrations are applied deliberately, from a step that carries the CLI — never on
 application start, where a slow or failed migration would take the service down with it.
@@ -403,7 +412,10 @@ runtime and seed stages, or the non-root process gets `EACCES` on the first uplo
 
 Migrations and the seed run as one-shot services that target the builder stage, because
 the runtime image carries no Prisma CLI. They are never run on application start, where a
-slow or failed migration would take the service down with it.
+slow or failed migration would take the service down with it. Being in the `tools`
+profile, they are also skipped by a plain `build` — DEPLOY.md rebuilds them explicitly
+before migrating, or the old image applies the old migrations and reports nothing
+pending.
 
 **TLS.** The session cookie is `Secure`, so the site must be served over HTTPS or sign-in
 silently fails — the cookie is set but never sent back. The simplest path with a domain
