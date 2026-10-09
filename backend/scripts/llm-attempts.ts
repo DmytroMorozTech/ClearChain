@@ -1,5 +1,5 @@
-import { prisma } from '../src/db/prisma.ts';
-import { utcDayStart } from '../src/services/extractionQuotaService.ts';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
 
 /**
  * Who has been using "Fill from file", from the attempt log.
@@ -12,12 +12,29 @@ import { utcDayStart } from '../src/services/extractionQuotaService.ts';
  *   docker compose -f docker-compose.prod.yml --profile tools run --rm \
  *     --entrypoint "npm run llm:attempts -w @clearchain/backend" migrate
  *
+ * Needs DATABASE_URL and nothing else. It builds its own client rather than importing
+ * the app's, because that would validate the whole app environment — auth secrets
+ * included — which the tools container does not carry and a read-only report does not
+ * need. Locally it falls back to backend/.env.
+ *
  * The log holds no addresses, so "client" is the first characters of a keyed hash and
  * "prefix" a truncated network — enough to see one caller hammering the endpoint.
  */
+if (process.env.DATABASE_URL === undefined) {
+  try {
+    process.loadEnvFile('.env');
+  } catch {
+    // No .env here (the container case); the check below reports what is missing.
+  }
+}
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error('DATABASE_URL is not set.');
+
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+
 const DAY_MS = 86_400_000;
 const now = new Date();
-const today = utcDayStart(now);
+const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 const weekStart = new Date(today.getTime() - 6 * DAY_MS);
 
 const rows = await prisma.llmExtractionAttempt.findMany({
